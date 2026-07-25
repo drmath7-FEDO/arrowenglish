@@ -125,9 +125,17 @@ export function StudyVault({ onNavigateToTranslator }) {
             <p className="text-xs sm:text-sm text-slate-300">
               저장해 둔 문장의 6단계 시순서 어순과 3색 원어민 뉘앙스를 언제든지 복습하고, 완전 학습 후 지워보세요!
             </p>
+            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 space-y-1 mt-2">
+              <p className="font-semibold text-amber-300 flex items-center gap-1.5">
+                💾 데이터 보관 안내:
+              </p>
+              <p className="text-slate-400">
+                학습자료실 데이터는 현재 사용 중인 브라우저(localStorage)에 안전하게 저장됩니다. 다른 기기 접속이나 브라우저 데이터 삭제를 대비해 중요한 문장은 <strong className="text-emerald-300">[MD 저장]</strong> 또는 <strong className="text-indigo-300">[PDF 저장]</strong>으로 파일 백업해두세요!
+              </p>
+            </div>
             {storagePath && (
-              <p className="text-[11px] text-slate-400">
-                저장 위치: <span className="text-emerald-300">{storagePath}</span>
+              <p className="text-[11px] text-slate-400 pt-1">
+                로컬 저장소 위치: <span className="text-emerald-300">{storagePath}</span>
               </p>
             )}
           </div>

@@ -6,6 +6,7 @@ import { ArrowPractice } from './components/ArrowPractice';
 import { PrepositionGuide } from './components/PrepositionGuide';
 import { StudyVault } from './components/StudyVault';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
+import { GuideModal } from './components/GuideModal';
 import { getStoredApiKey } from './services/apiKeyStorage';
 import { initVaultStorage } from './services/vaultService';
 
@@ -13,6 +14,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('translator');
   const [theme, setTheme] = useState('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
 
   const [currentResult, setCurrentResult] = useState(null);
@@ -36,6 +38,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenGuide={() => setIsGuideOpen(true)}
         theme={theme}
         toggleTheme={toggleTheme}
         currentResult={currentResult}
@@ -54,9 +57,22 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-16 text-center text-xs text-slate-500 py-6 border-t border-slate-800/60">
+      <footer className="mt-16 text-center text-xs text-slate-500 py-6 border-t border-slate-800/60 flex flex-col items-center gap-2">
         <p>© 2026 Arrow English AI Studio - 뇌 구조에 맞춘 직관 영어 학습 파트너</p>
+        <button
+          onClick={() => setIsGuideOpen(true)}
+          className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 font-medium"
+        >
+          💡 서비스 이용 가이드 및 데이터 보관 안내 다시보기
+        </button>
       </footer>
+
+      {/* Guide Modal */}
+      <GuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
       {/* API Settings Modal */}
       <ApiSettingsModal
@@ -68,3 +84,4 @@ export default function App() {
     </div>
   );
 }
+

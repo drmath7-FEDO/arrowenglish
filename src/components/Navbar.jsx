@@ -3,7 +3,7 @@ import { downloadMarkdown, exportToPDF } from '../services/exportService';
 import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen } from 'lucide-react';
 import { getVaultItems, subscribeToVaultChanges } from '../services/vaultService';
 
-export function Navbar({ activeTab, setActiveTab, onOpenSettings, theme, toggleTheme, currentResult }) {
+export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, theme, toggleTheme, currentResult }) {
   const [vaultCount, setVaultCount] = useState(() => getVaultItems().length);
 
   useEffect(() => {
@@ -113,6 +113,15 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, theme, toggleT
             </button>
           </div>
         )}
+
+        <button
+          onClick={onOpenGuide}
+          className="btn-secondary text-xs bg-sky-500/10 border-sky-500/30 text-sky-300 hover:bg-sky-500/20"
+          title="이용 가이드 & 필독 안내"
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+          <span className="hidden sm:inline">이용 가이드</span>
+        </button>
 
         <button
           onClick={onOpenSettings}
