@@ -54,6 +54,66 @@ async function requestVaultApi(url, options = {}) {
   return response.json();
 }
 
+function toggleLocalVaultItem(result) {
+  const items = getCachedVaultItems();
+  const targetId = result.id || result.english || result.arrowKorean || `vault-${Date.now()}`;
+
+  const existingIndex = items.findIndex((item) =>
+    item.id === targetId || item.arrowKorean === result.arrowKorean || item.english === result.english
+  );
+
+  let isSaved = false;
+  let newItems = [];
+
+  if (existingIndex >= 0) {
+    // Untoggle / remove
+    newItems = items.filter((_, idx) => idx !== existingIndex);
+    isSaved = false;
+  } else {
+    // Toggle on / add
+    const newItem = {
+      ...result,
+      id: targetId,
+      savedAt: new Date().toISOString()
+    };
+    newItems = [newItem, ...items];
+    isSaved = true;
+  }
+
+  const snapshot = {
+    items: newItems,
+    masteredCount: getCachedMasteredCount(),
+    storagePath: ''
+  };
+
+  cacheVaultSnapshot(snapshot);
+  return { isSaved, ...snapshot };
+}
+
+function removeLocalVaultItem(itemId) {
+  const items = getCachedVaultItems();
+  const existingIndex = items.findIndex((item) =>
+    item.id === itemId || item.arrowKorean === itemId || item.english === itemId
+  );
+
+  let newItems = items;
+  let masteredCount = getCachedMasteredCount();
+
+  if (existingIndex >= 0) {
+    newItems = items.filter((_, idx) => idx !== existingIndex);
+    masteredCount += 1;
+  }
+
+  const snapshot = {
+    items: newItems,
+    masteredCount,
+    storagePath: ''
+  };
+
+  cacheVaultSnapshot(snapshot);
+  return snapshot;
+}
+
 export function getVaultItems() {
   return getCachedVaultItems();
 }
@@ -93,13 +153,14 @@ export async function loadVaultSnapshot() {
     const snapshot = await requestVaultApi('/api/vault');
     cacheVaultSnapshot(snapshot);
     return snapshot;
-  } catch (error) {
-    console.error('Failed to load study vault from file storage:', error);
-    return {
+  } catch {
+    const snapshot = {
       items: getCachedVaultItems(),
       masteredCount: getCachedMasteredCount(),
       storagePath: ''
     };
+    cacheVaultSnapshot(snapshot);
+    return snapshot;
   }
 }
 
@@ -126,13 +187,8 @@ export async function saveToVault(result) {
     cacheVaultSnapshot(snapshot);
     return snapshot;
   } catch (error) {
-    console.error('Failed to save study vault item to file storage:', error);
-    return {
-      isSaved: isItemSaved(result),
-      items: getCachedVaultItems(),
-      masteredCount: getCachedMasteredCount(),
-      storagePath: ''
-    };
+    // Pure client-side localStorage fallback when server API fails/is offline
+    return toggleLocalVaultItem(result);
   }
 }
 
@@ -154,11 +210,7 @@ export async function removeFromVault(itemId) {
     cacheVaultSnapshot(snapshot);
     return snapshot;
   } catch (error) {
-    console.error('Failed to remove study vault item from file storage:', error);
-    return {
-      items: getCachedVaultItems(),
-      masteredCount: getCachedMasteredCount(),
-      storagePath: ''
-    };
+    // Pure client-side localStorage fallback when server API fails/is offline
+    return removeLocalVaultItem(itemId);
   }
 }
