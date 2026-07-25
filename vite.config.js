@@ -1,11 +1,207 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-// https://vite.dev/config/
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+const vaultDir = path.join(projectRoot, '학습자료실');
+const vaultMetaFile = path.join(vaultDir, '_vault_meta.json');
+
+function sanitizeFileName(name) {
+  const withoutControlChars = Array.from(String(name || 'vault-item'))
+    .map((character) => character.charCodeAt(0) < 32 ? '_' : character)
+    .join('');
+
+  const sanitized = withoutControlChars
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 120);
+
+  return sanitized || 'vault-item';
+}
+
+function getVaultItemId(result) {
+  return result?.id || result?.english || result?.arrowKorean || `vault-${Date.now()}`;
+}
+
+function getVaultItemFilePath(itemId) {
+  return path.join(vaultDir, `${sanitizeFileName(itemId)}.json`);
+}
+
+async function ensureVaultDir() {
+  await fs.mkdir(vaultDir, { recursive: true });
+}
+
+async function readJsonFile(filePath, fallbackValue) {
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return fallbackValue;
+  }
+}
+
+async function readVaultMeta() {
+  return readJsonFile(vaultMetaFile, { masteredCount: 0 });
+}
+
+async function writeVaultMeta(meta) {
+  await ensureVaultDir();
+  await fs.writeFile(vaultMetaFile, JSON.stringify(meta, null, 2), 'utf8');
+}
+
+async function readVaultItems() {
+  await ensureVaultDir();
+  const entries = await fs.readdir(vaultDir, { withFileTypes: true });
+  const items = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.json') || entry.name === path.basename(vaultMetaFile)) {
+      continue;
+    }
+
+    const item = await readJsonFile(path.join(vaultDir, entry.name), null);
+    if (item) {
+      items.push(item);
+    }
+  }
+
+  return items.sort((left, right) => (right.savedAt || '').localeCompare(left.savedAt || ''));
+}
+
+async function findExistingVaultItem(result) {
+  const items = await readVaultItems();
+  const targetId = getVaultItemId(result);
+
+  return items.find((item) =>
+    item.id === targetId ||
+    item.arrowKorean === result?.arrowKorean ||
+    item.english === result?.english
+  ) || null;
+}
+
+async function createVaultSnapshot() {
+  const [items, meta] = await Promise.all([readVaultItems(), readVaultMeta()]);
+
+  return {
+    items,
+    masteredCount: meta.masteredCount || 0,
+    storagePath: vaultDir
+  };
+}
+
+async function toggleVaultItem(result) {
+  await ensureVaultDir();
+  const existingItem = await findExistingVaultItem(result);
+
+  if (existingItem) {
+    await fs.rm(getVaultItemFilePath(existingItem.id), { force: true });
+    return { isSaved: false, ...(await createVaultSnapshot()) };
+  }
+
+  const item = {
+    ...result,
+    id: getVaultItemId(result),
+    savedAt: new Date().toISOString()
+  };
+
+  await fs.writeFile(getVaultItemFilePath(item.id), JSON.stringify(item, null, 2), 'utf8');
+  return { isSaved: true, ...(await createVaultSnapshot()) };
+}
+
+async function removeVaultItem(itemId) {
+  await ensureVaultDir();
+  const items = await readVaultItems();
+  const targetItem = items.find((item) =>
+    item.id === itemId || item.arrowKorean === itemId || item.english === itemId
+  );
+
+  if (targetItem) {
+    await fs.rm(getVaultItemFilePath(targetItem.id), { force: true });
+    const meta = await readVaultMeta();
+    await writeVaultMeta({ ...meta, masteredCount: (meta.masteredCount || 0) + 1 });
+  }
+
+  return createVaultSnapshot();
+}
+
+async function readRequestJson(req) {
+  const chunks = [];
+
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+
+  const rawBody = Buffer.concat(chunks).toString('utf8');
+  return rawBody ? JSON.parse(rawBody) : {};
+}
+
+function writeJson(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(payload));
+}
+
+function createVaultApiPlugin() {
+  const handleVaultRequest = async (req, res, next) => {
+    if (!req.url?.startsWith('/api/vault')) {
+      next();
+      return;
+    }
+
+    try {
+      if (req.method === 'GET' && req.url === '/api/vault') {
+        writeJson(res, 200, await createVaultSnapshot());
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/api/vault/toggle') {
+        const { result } = await readRequestJson(req);
+        if (!result) {
+          writeJson(res, 400, { message: 'result is required.' });
+          return;
+        }
+
+        writeJson(res, 200, await toggleVaultItem(result));
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/api/vault/remove') {
+        const { itemId } = await readRequestJson(req);
+        if (!itemId) {
+          writeJson(res, 400, { message: 'itemId is required.' });
+          return;
+        }
+
+        writeJson(res, 200, await removeVaultItem(itemId));
+        return;
+      }
+
+      writeJson(res, 404, { message: 'Vault API route not found.' });
+    } catch (error) {
+      writeJson(res, 500, {
+        message: 'Vault API request failed.',
+        detail: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  return {
+    name: 'arrowenglish-vault-api',
+    configureServer(server) {
+      server.middlewares.use(handleVaultRequest);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(handleVaultRequest);
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), createVaultApiPlugin()],
   server: {
-    host: true, // Expose to all network interfaces (mobile phones on same Wi-Fi)
+    host: true,
     port: 5173
   }
-})
+});

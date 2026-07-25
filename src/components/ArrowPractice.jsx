@@ -36,7 +36,9 @@ export function ArrowPractice() {
         setScore(prev => prev + 10);
         try {
           confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-        } catch (e) {}
+        } catch {
+          // Ignore confetti errors
+        }
       }
     }
   };

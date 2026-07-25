@@ -1,8 +1,19 @@
-// src/components/Navbar.jsx
-import React from 'react';
-import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { downloadMarkdown, exportToPDF } from '../services/exportService';
+import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen } from 'lucide-react';
+import { getVaultItems, subscribeToVaultChanges } from '../services/vaultService';
 
-export function Navbar({ activeTab, setActiveTab, onOpenSettings, theme, toggleTheme }) {
+export function Navbar({ activeTab, setActiveTab, onOpenSettings, theme, toggleTheme, currentResult }) {
+  const [vaultCount, setVaultCount] = useState(() => getVaultItems().length);
+
+  useEffect(() => {
+    setVaultCount(getVaultItems().length);
+
+    return subscribeToVaultChanges((snapshot) => {
+      setVaultCount(snapshot.items.length);
+    });
+  }, []);
+
   return (
     <header className="glass-panel sticky top-4 z-40 mx-4 my-4 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
       {/* Brand Logo */}
@@ -59,10 +70,50 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, theme, toggleT
           <HelpCircle className="w-4 h-4" />
           <span>전치사 지도</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('vault')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all relative ${
+            activeTab === 'vault'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <FolderOpen className="w-4 h-4 text-amber-400" />
+          <span>📚 학습자료실</span>
+          {vaultCount > 0 && (
+            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 ml-0.5">
+              {vaultCount}
+            </span>
+          )}
+        </button>
       </nav>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      {/* Right Controls: Save Buttons (Top Line of Screen) + Settings & Theme */}
+      <div className="flex items-center gap-2.5">
+        {/* Top Line Export Buttons */}
+        {currentResult && activeTab === 'translator' && (
+          <div className="flex items-center gap-2 mr-2 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shadow-inner">
+            <button
+              onClick={() => downloadMarkdown(currentResult)}
+              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-sm"
+              title="디자인 없는 텍스트 마크다운(.md) 저장"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>MD 저장</span>
+            </button>
+
+            <button
+              onClick={() => exportToPDF(currentResult)}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+              title="디자인 적용 PDF 리포트 저장"
+            >
+              <Printer className="w-3.5 h-3.5 text-amber-300" />
+              <span>PDF 저장</span>
+            </button>
+          </div>
+        )}
+
         <button
           onClick={onOpenSettings}
           className="btn-secondary text-xs"

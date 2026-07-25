@@ -1,16 +1,24 @@
 // src/components/ApiSettingsModal.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Key, Check, ShieldCheck } from 'lucide-react';
+import { clearStoredApiKey, saveStoredApiKey } from '../services/apiKeyStorage';
 
 export function ApiSettingsModal({ isOpen, onClose, apiKey, setApiKey }) {
   const [tempKey, setTempKey] = useState(apiKey);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTempKey(apiKey || '');
+      setSavedSuccess(false);
+    }
+  }, [apiKey, isOpen]);
+
   if (!isOpen) return null;
 
   const handleSave = () => {
     setApiKey(tempKey.trim());
-    localStorage.setItem('arrow_gemini_api_key', tempKey.trim());
+    saveStoredApiKey(tempKey);
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
@@ -21,7 +29,7 @@ export function ApiSettingsModal({ isOpen, onClose, apiKey, setApiKey }) {
   const handleClear = () => {
     setTempKey('');
     setApiKey('');
-    localStorage.removeItem('arrow_gemini_api_key');
+    clearStoredApiKey();
   };
 
   return (
