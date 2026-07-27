@@ -543,6 +543,9 @@ export function EmailModal({ isOpen, onClose, result }) {
                         </button>
                       )}
                     </div>
+                    <p className="text-[10px] text-amber-300/90 font-medium pt-0.5">
+                      ⚠️ <strong>토큰 유효기간 안내:</strong> Access Token은 구글 보안 표준에 따라 <strong>1시간(60분) 시한부</strong>입니다. 1시간 뒤 만료되면 30초 만에 재발급 받으시거나, 만료 없이 영구 자동 발송을 원하시면 아래 EmailJS 키 연동을 추천합니다!
+                    </p>
                   </div>
 
                   {/* Google OAuth Login Launcher */}
