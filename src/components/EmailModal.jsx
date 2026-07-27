@@ -569,6 +569,9 @@ export function EmailModal({ isOpen, onClose, result }) {
                         <span>Google 로그인 연동</span>
                       </button>
                     </div>
+                    <p className="text-[10px] text-sky-300/90 font-medium pt-0.5">
+                      💡 <strong>origin_mismatch 오류가 뜨는 경우:</strong> Google Cloud Console의 클라이언트 ID 편집 ➔ <strong>[승인된 자바스크립트 출처]</strong>에 현재 접속 주소(<code className="bg-slate-900 px-1 text-amber-300">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'}</code>)를 추가해 주시면 30초 만에 해결됩니다!
+                    </p>
                   </div>
                 </div>
               )}
