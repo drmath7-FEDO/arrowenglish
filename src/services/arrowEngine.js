@@ -1574,8 +1574,7 @@ Respond ONLY with a JSON object in this exact schema:
 `;
 
     const modelEndpoints = [
-      'gemini-3.5-flash',
-      'gemini-3.0-flash',
+      'gemini-3.6-flash',
       'gemini-2.5-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash'
@@ -1641,10 +1640,11 @@ Respond ONLY with a JSON object in this exact schema:
         // continue to next model
       }
     }
+
+    throw new Error("GEMINI_API_ERROR: 입력하신 Gemini API 키가 올바르지 않거나 호출에 실패했습니다. 유효한 API 키를 확인해 주세요.");
   }
 
-  // Fallback to enhanced async local parser
-  return await parseArrowKoreanLocalAsync(arrowKoreanInput);
+  throw new Error("API_KEY_REQUIRED: Gemini API 키가 설정되지 않았습니다. 상단 [⚙️ API 키 설정]에서 API 키를 입력해 주세요.");
 }
 
 /**

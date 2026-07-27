@@ -66,7 +66,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="container mx-auto">
         {activeTab === 'translator' && (
-          <ArrowTranslator apiKey={apiKey} onResultChange={setCurrentResult} />
+          <ArrowTranslator apiKey={apiKey} onResultChange={setCurrentResult} onOpenSettings={() => setIsSettingsOpen(true)} />
         )}
         {activeTab === 'practice' && <ArrowPractice />}
         {activeTab === 'dictionary' && <PrepositionGuide />}

@@ -9,7 +9,7 @@ import { buildUpdatedTranslationResult } from '../services/resultService';
 import { speakEnglishText } from '../services/speechService';
 import { convertArrowKorean, PRESET_SENTENCES } from '../services/translationService';
 
-export function ArrowTranslator({ apiKey, onResultChange }) {
+export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
   const [inputSentence, setInputSentence] = useState(PRESET_SENTENCES[0].arrowKorean);
   const [selectedPresetId, setSelectedPresetId] = useState(PRESET_SENTENCES[0].id);
   const [result, setResult] = useState(PRESET_SENTENCES[0]);
@@ -18,6 +18,7 @@ export function ArrowTranslator({ apiKey, onResultChange }) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSavedInVault, setIsSavedInVault] = useState(false);
   const [vaultToastMsg, setVaultToastMsg] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const recommendations = useMemo(() => (result ? getNativeRecommendations(result) : []), [result]);
   const vocabNuances = useMemo(() => (result ? getVocabNuances(result) : []), [result]);
   const vocabCards = useMemo(() => {
@@ -67,6 +68,7 @@ export function ArrowTranslator({ apiKey, onResultChange }) {
   const handleConvert = async (textToConvert = inputSentence) => {
     if (!textToConvert.trim()) return;
     setLoading(true);
+    setErrorMessage('');
 
     try {
       const nextResult = await convertArrowKorean(textToConvert, apiKey);
@@ -74,9 +76,9 @@ export function ArrowTranslator({ apiKey, onResultChange }) {
       if (onResultChange) onResultChange(nextResult);
     } catch (e) {
       console.error(e);
-      const fallback = await convertArrowKorean(textToConvert, '');
-      setResult(fallback);
-      if (onResultChange) onResultChange(fallback);
+      setResult(null);
+      if (onResultChange) onResultChange(null);
+      setErrorMessage(e.message || 'Gemini API 키가 작동하지 않거나 변환 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -87,6 +89,7 @@ export function ArrowTranslator({ apiKey, onResultChange }) {
     setSelectedPresetId(preset.id);
     setInputSentence(preset.arrowKorean);
     setResult(preset);
+    setErrorMessage('');
     if (onResultChange) onResultChange(preset);
   };
 
@@ -210,6 +213,39 @@ export function ArrowTranslator({ apiKey, onResultChange }) {
           </div>
         </div>
       </section>
+
+      {/* API Key Error Warning Banner */}
+      {errorMessage && (
+        <section className="glass-panel p-6 border-rose-500/40 bg-rose-950/40 text-rose-200 space-y-4 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+              <Info className="w-5 h-5" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <h4 className="text-base font-extrabold text-white flex items-center gap-2">
+                <span>⚠️ AI 영어 변환 중단 (Gemini API 키 확인 필요)</span>
+              </h4>
+              <p className="text-xs sm:text-sm text-rose-200 leading-relaxed font-medium">
+                {errorMessage.replace(/^(API_KEY_REQUIRED:|GEMINI_API_ERROR:)\s*/, '')}
+              </p>
+              <p className="text-xs text-rose-300/70 pt-0.5">
+                ※ 어색한 1:1 직역 문장을 방지하기 위해 AI 번역 작동이 안 될 경우 변환 프로세스를 중단합니다.
+              </p>
+
+              {onOpenSettings && (
+                <div className="pt-2">
+                  <button
+                    onClick={onOpenSettings}
+                    className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs gap-1.5 font-bold shadow-lg"
+                  >
+                    <span>⚙️ Google Gemini API 키 설정하기</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Translation & Visual Breakdown Result Area */}
       {result && (
