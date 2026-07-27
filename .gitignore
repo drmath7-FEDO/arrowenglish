@@ -23,10 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables (API keys)
+# Environment variables & Local API keys
 .env
 .env.local
 .env.*.local
+_api_key.json
+_api_key.*
 
 # 학습자료실 — 사용자 개인 학습 데이터 (개인정보 보호)
 학습자료실/

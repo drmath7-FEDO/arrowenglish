@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { downloadMarkdown, exportToPDF } from '../services/exportService';
-import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen, HardDrive } from 'lucide-react';
+import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen, HardDrive, Mail } from 'lucide-react';
 import { getVaultItems, subscribeToVaultChanges, selectLocalDirectory, disconnectLocalDirectory, getDirectoryStatus } from '../services/vaultService';
 
-export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, theme, toggleTheme, currentResult }) {
+export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, theme, toggleTheme, currentResult, onOpenEmailModal }) {
   const [vaultCount, setVaultCount] = useState(() => getVaultItems().length);
   const [dirStatus, setDirStatus] = useState(() => getDirectoryStatus());
 
@@ -168,6 +168,15 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, t
             >
               <Printer className="w-3.5 h-3.5 text-amber-300" />
               <span>PDF 저장</span>
+            </button>
+
+            <button
+              onClick={() => onOpenEmailModal && onOpenEmailModal(currentResult)}
+              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-md shadow-sky-600/30"
+              title="변환 화면 그대로 E-mail 전송"
+            >
+              <Mail className="w-3.5 h-3.5 text-sky-200" />
+              <span>이메일 보내기</span>
             </button>
           </div>
         )}

@@ -7,7 +7,8 @@ import { PrepositionGuide } from './components/PrepositionGuide';
 import { StudyVault } from './components/StudyVault';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GuideModal } from './components/GuideModal';
-import { getStoredApiKey } from './services/apiKeyStorage';
+import { EmailModal } from './components/EmailModal';
+import { getStoredApiKey, fetchStoredApiKeyAsync } from './services/apiKeyStorage';
 import { initVaultStorage } from './services/vaultService';
 
 export default function App() {
@@ -15,6 +16,8 @@ export default function App() {
   const [theme, setTheme] = useState('dark');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailTargetResult, setEmailTargetResult] = useState(null);
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
 
   const [currentResult, setCurrentResult] = useState(null);
@@ -25,9 +28,24 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
+  const handleOpenEmailModal = (targetResult) => {
+    setEmailTargetResult(targetResult || currentResult);
+    setIsEmailModalOpen(true);
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'dark');
     initVaultStorage();
+
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(() => {});
+    }
+
+    fetchStoredApiKeyAsync().then((storedKey) => {
+      if (storedKey) {
+        setApiKey(storedKey);
+      }
+    });
   }, []);
 
   return (
@@ -39,6 +57,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenGuide={() => setIsGuideOpen(true)}
+        onOpenEmailModal={handleOpenEmailModal}
         theme={theme}
         toggleTheme={toggleTheme}
         currentResult={currentResult}
@@ -52,7 +71,10 @@ export default function App() {
         {activeTab === 'practice' && <ArrowPractice />}
         {activeTab === 'dictionary' && <PrepositionGuide />}
         {activeTab === 'vault' && (
-          <StudyVault onNavigateToTranslator={() => setActiveTab('translator')} />
+          <StudyVault
+            onNavigateToTranslator={() => setActiveTab('translator')}
+            onOpenEmailModal={handleOpenEmailModal}
+          />
         )}
       </main>
 
@@ -80,6 +102,13 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         apiKey={apiKey}
         setApiKey={setApiKey}
+      />
+
+      {/* Email Modal */}
+      <EmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        result={emailTargetResult || currentResult}
       />
     </div>
   );

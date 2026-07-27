@@ -63,9 +63,14 @@ export function ApiSettingsModal({ isOpen, onClose, apiKey, setApiKey }) {
             placeholder="AIzaSy..."
             className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500"
           />
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>API 키는 서버에 저장되지 않고 브라우저에만 암호화 보관됩니다.</span>
+          <div className="flex flex-col gap-1 text-[11px] text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>로컬 로컬 디스크 파일(`_api_key.json`) 이중 백업 보관</span>
+            </div>
+            <span className="text-[10px] text-sky-400 font-medium">
+              ✨ 브라우저 캐시/방문 기록을 삭제하더라도 API 키가 삭제되지 않고 영구 보존됩니다!
+            </span>
           </div>
         </div>
 

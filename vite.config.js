@@ -143,8 +143,43 @@ function writeJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+const apiKeyFile = path.join(projectRoot, '_api_key.json');
+
+async function readApiKeyFromFile() {
+  const data = await readJsonFile(apiKeyFile, { apiKey: '' });
+  return data.apiKey || '';
+}
+
+async function writeApiKeyToFile(apiKey) {
+  if (!apiKey) {
+    await fs.rm(apiKeyFile, { force: true });
+    return;
+  }
+  await fs.writeFile(apiKeyFile, JSON.stringify({ apiKey: apiKey.trim() }, null, 2), 'utf8');
+}
+
 function createVaultApiPlugin() {
   const handleVaultRequest = async (req, res, next) => {
+    if (req.url?.startsWith('/api/config/key')) {
+      try {
+        if (req.method === 'GET') {
+          const apiKey = await readApiKeyFromFile();
+          writeJson(res, 200, { apiKey });
+          return;
+        }
+
+        if (req.method === 'POST') {
+          const { apiKey } = await readRequestJson(req);
+          await writeApiKeyToFile(apiKey || '');
+          writeJson(res, 200, { success: true, apiKey: apiKey || '' });
+          return;
+        }
+      } catch (err) {
+        writeJson(res, 500, { message: 'Config API request failed.', detail: err instanceof Error ? err.message : '' });
+        return;
+      }
+    }
+
     if (!req.url?.startsWith('/api/vault')) {
       next();
       return;
@@ -199,6 +234,7 @@ function createVaultApiPlugin() {
 }
 
 export default defineConfig({
+  base: './',
   plugins: [react(), createVaultApiPlugin()],
   server: {
     host: true,

@@ -16,10 +16,11 @@ import {
   EyeOff,
   Award,
   Calendar,
-  FolderOpen
+  FolderOpen,
+  Mail
 } from 'lucide-react';
 
-export function StudyVault({ onNavigateToTranslator }) {
+export function StudyVault({ onNavigateToTranslator, onOpenEmailModal }) {
   const [items, setItems] = useState([]);
   const [masteredCount, setMasteredCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -327,6 +328,15 @@ export function StudyVault({ onNavigateToTranslator }) {
                       title="이 카드 PDF 출력"
                     >
                       <Printer className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Email Button */}
+                    <button
+                      onClick={() => onOpenEmailModal && onOpenEmailModal(item)}
+                      className="btn-secondary text-xs p-2 text-sky-400 hover:text-sky-300"
+                      title="이 카드 E-mail 전송"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
                     </button>
 
                     {/* Delete / Mark as Mastered Button */}

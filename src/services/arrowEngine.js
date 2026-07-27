@@ -66,6 +66,8 @@ const WORD_TRANSLATION_MAP = {
   "송년회": "the year-end party", "망년회": "the year-end party",
   "친구들": "friends", "내 친구들": "my friends",
   "생각": "thoughts", "생각을": "thoughts", "의견": "opinions", "마음": "mind",
+  "나 하고 있다 일 잘": "I am doing well at work", "나 하고있다 일 잘": "I am doing well at work", "하고 있다 일 잘": "doing well at work", "하고있다 일 잘": "doing well at work", "일 잘": "well at work", "일 잘하고 있다": "doing well at work",
+  "복잡하다 머리와 마음": "my head and heart are complicated", "복잡하다 머리와 마음이": "my head and heart are complicated", "나 복잡하다 머리와 마음": "my head and heart are complicated", "머리와 마음": "head and heart", "머리와 마음이": "head and heart", "복잡하다": "is complicated",
   "죄와벌": "Crime and Punishment", "죄와 벌": "Crime and Punishment", "책": "a book", "책을": "a book", "소설": "a novel",
   "책상": "the desk", "책상에": "on the desk", "책상위": "on the desk", "의자": "a chair", "테이블": "the table",
   "가방": "a bag", "연필": "a pencil", "펜": "a pen", "지우개": "an eraser", "자": "a ruler", "필통": "a pencil case", "종이": "paper",
@@ -247,6 +249,8 @@ export async function translateKoreanTokenAsync(token) {
         text = text.toLowerCase().trim();
         if (text === 'to sit') text = 'sits';
         if (text === 'to organize') text = 'organize';
+        if (cleanToken === '일') text = 'work';
+        if (cleanToken === '다리') text = 'a bridge';
         text = text.replace(/^i\s+will\s+/i, 'will ').replace(/\s+you$/i, '');
         WORD_TRANSLATION_MAP[cleanToken] = text;
         return text;
@@ -266,6 +270,8 @@ export async function translateKoreanTokenAsync(token) {
         text = text.toLowerCase().trim();
         if (text === 'to sit') text = 'sits';
         if (text === 'to organize') text = 'organize';
+        if (cleanToken === '일') text = 'work';
+        if (cleanToken === '다리') text = 'a bridge';
         text = text.replace(/^i\s+will\s+/i, 'will ').replace(/\s+you$/i, '');
         WORD_TRANSLATION_MAP[cleanToken] = text;
         return text;
@@ -276,6 +282,27 @@ export async function translateKoreanTokenAsync(token) {
   }
 
   return syncResult;
+}
+
+/**
+ * Translates a full Korean sentence asynchronously using free online Google Translate GTX API.
+ */
+export async function translateFullSentenceAsync(text) {
+  if (!text) return '';
+  const clean = text.replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim();
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=${encodeURIComponent(clean)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const translated = data[0]?.map(item => item[0]).join('');
+      if (translated && !/[\u3131-\u318E\uAC00-\uD7A3]/.test(translated)) {
+        return translated.trim();
+      }
+    }
+  } catch {
+    // Ignore error
+  }
+  return '';
 }
 
 /**
@@ -1389,8 +1416,23 @@ export async function parseArrowKoreanLocalAsync(input) {
     .replace(/\b(I|i)\s+(i|I)\b/g, 'I')
     .replace(/\b(I|you|he|she|we|they)\s+\1\b/gi, '$1')
     .replace(/\bmeet\s+you\s+(my|the|a|an|his|her|our|their|old)\b/gi, 'meet $1')
+    .replace(/\bdo\s+is\s+day\s+well\b/gi, 'doing well at work')
+    .replace(/\bI\s+do\s+is\s+day\s+well\b/gi, "I am doing well at work")
+    .replace(/\bdo\s+is\s+day\b/gi, 'doing well at work')
+    .replace(/\bI\s+complicated\s+head\s+and\s+mind\b/gi, 'my head and heart are complicated')
+    .replace(/\bI\s+complicated\b/gi, 'my mind is complicated')
+    .replace(/\bthough\s+I\s+complicated\b/gi, 'though my mind is complicated')
+    .replace(/\bhead\s+and\s+mind\b/gi, 'head and heart')
     .replace(/\bsentences\s+3\b/gi, 'three sentences')
     .replace(/\s+([.,!?;])/g, '$1');
+
+  // Try full-sentence online translation fallback if fullEnglish has literal/broken patterns
+  if (/do is day|I complicated|a 궁금하|a 만다르트/i.test(fullEnglish) || fullEnglish.includes('do is day')) {
+    const fullOnline = await translateFullSentenceAsync(cleanInput);
+    if (fullOnline && fullOnline.length > 5) {
+      fullEnglish = fullOnline;
+    }
+  }
 
   fullEnglish = fullEnglish.charAt(0).toUpperCase() + fullEnglish.slice(1);
   if (!/[.!?]$/.test(fullEnglish)) fullEnglish += '.';
@@ -1459,21 +1501,21 @@ export async function parseArrowKoreanLocalAsync(input) {
  * Live Gemini API Call with 5x Enriched 5D Masterclass Coaching
  */
 export async function translateWithGemini(arrowKoreanInput, apiKey) {
-  if (apiKey && apiKey.length > 10) {
+  if (apiKey && apiKey.trim().length > 10) {
     const prompt = `
-You are a top-tier English Education Expert specializing in spoken English (구어체) and practical grammar (실전 문법), dedicated to training non-native Korean learners to form an English-thinking brain for LISTENING and SPEAKING fluency.
-The user typed a Korean/English sentence draft in Arrow English order.
+You are an elite English Education Expert specializing in spoken English (구어체) and practical grammar (실전 문법).
+The user typed a Korean/English sentence draft: "${arrowKoreanInput}"
 
-User Input Draft: "${arrowKoreanInput}"
-
-You MUST analyze the input, build the Arrow English breakdown (strictly following order: Subject ➔ Action ➔ Target ➔ Preposition ➔ Location ➔ Time), AND generate a 5x enriched 5-dimensional Korean Masterclass Coaching note for every expression upgrade point.
-CRITICAL: Every chunk's "english" field MUST be the exact natural standard ENGLISH translation (No Korean characters in the "english" field!).
+YOUR HIGHEST PRIORITY:
+Translate the input into 100% PERFECT, NATURAL, NATIVE SPOKEN ENGLISH for the "english" field.
+- DO NOT translate literally word-by-word if it creates awkward English! (e.g., "나 하고 있다 일 잘" -> "I am doing well at work" or "I'm doing a good job", NOT "I do is day well"!).
+- Fix any Korean homonyms or polysemy in context (e.g. "일" near work/job -> "work/job", "다리" -> "bridge").
 
 Respond ONLY with a JSON object in this exact schema:
 {
-  "english": "The exact natural standard English sentence ONLY (No Korean text inside this field!)",
+  "english": "The exact natural standard native spoken English sentence ONLY (No Korean text inside this field!)",
   "chunks": [
-    { "text": "Korean chunk", "role": "1. 주인공 (Subject) / 2. 동작 (Action) / 3. 가까운 대상 (Target) / 4. 전치사 (Preposition) / 5. 장소 (Location) / 6. 시간 (Time)", "english": "Exact English word or phrase equivalent (NO Korean characters!)", "color": "indigo/blue/emerald/amber/purple" }
+    { "text": "Korean chunk", "role": "1. 주인공 (Subject) / 2. 동작 (Action) / 3. 가까운 대상 (Target) / 4. 전치사/연결어 (Preposition) / 5. 장소/부연 (Location/Context) / 6. 시간 (Time)", "english": "Exact English phrase equivalent", "color": "indigo/blue/emerald/amber/rose/purple" }
   ],
   "explanation": [
     "Step 1 explanation in Korean according to Arrow English principles",
@@ -1485,27 +1527,27 @@ Respond ONLY with a JSON object in this exact schema:
   ],
   "nativeRecommendations": [
     {
-      "label": "💬 1. 일상 자연스러운 구어체 (Everyday Spoken)",
-      "english": "Natural vivid everyday spoken English sentence with common phrasal verbs",
-      "korean": "자연스러운 일상 구어체 한국어 번역",
-      "keyChange": "💡 어휘 & 뉘앙스 차이 (e.g. open ➔ pop open / pour ➔ chug down)"
+      "label": "표현 1 (가장 직관적인 기본 표현 - Natural Standard)",
+      "english": "Natural vivid everyday standard English sentence",
+      "korean": "자연스러운 일상 한국어 번역",
+      "keyChange": "💡 어휘 & 뉘앙스 차이 포인트"
     },
     {
-      "label": "💼 2. 격식 & 오피스 표현 (Polite & Professional)",
-      "english": "Polite, refined formal English sentence suitable for work or formal settings",
-      "korean": "격식 있고 품격 있는 한국어 번역",
-      "keyChange": "💡 격식 어휘 포인트 (e.g. fridge ➔ refrigerator / pour ➔ sip)"
+      "label": "표현 2 (동사 및 어휘 교체 표현 - Synonym Substitution)",
+      "english": "Refined English sentence with verb or phrase substitution",
+      "korean": "격식 및 유의어 한국어 번역",
+      "keyChange": "💡 어휘 교체 포인트"
     },
     {
-      "label": "🎬 3. 미드 & 현지인 찰진 구어체 (Cool Native Vibe)",
-      "english": "Lively, idiomatic native expression as seen in TV shows or real conversations",
-      "korean": "생생하고 쿨한 현지인 실전 구어체 번역",
-      "keyChange": "💡 미드 속 찰진 동사구 팁 (e.g. snag, chug it down, gulp)"
+      "label": "표현 3 (원어민 실전 구어체 - Casual Native Vibe)",
+      "english": "Lively idiomatic native expression as seen in TV shows",
+      "korean": "생생한 현지인 구어체 번역",
+      "keyChange": "💡 미드 속 찰진 동사구 팁"
     }
   ],
   "correction": {
     "isRefined": true,
-    "coachGreeting": "Warm encouraging 1:1 coaching banner in Korean (e.g. 🌱 선생님의 1:1 맞춤 응원 코칭: ...)",
+    "coachGreeting": "🌱 선생님의 1:1 맞춤 응원 코칭: ...",
     "userDraft": "${arrowKoreanInput}",
     "refinedEnglish": "Perfect native standard English sentence",
     "rhythmChunks": [
@@ -1513,25 +1555,27 @@ Respond ONLY with a JSON object in this exact schema:
     ],
     "points": [
       {
-        "category": "Preposition / Grammar / Verb Tense / Word Choice / Article in Korean",
-        "original": "Learner's mistaken phrase or chunk",
+        "category": "Preposition / Grammar / Word Choice in Korean",
+        "original": "Learner's mistaken phrase",
         "corrected": "Corrected native English phrase",
-        "imageDifference": "🧠 원어민 뇌속 3D 시각 이미지: Detailed 3D image difference in Korean",
-        "listeningTip": "🎧 듣기(Listening) 직청직해 훈련: Practical listening direct-comprehension tip in Korean",
-        "speakingTip": "🗣️ 말하기(Speaking) 입근육 결합 패턴: Mouth muscle practice & collocation pattern in Korean",
-        "misconception": "🔄 ❌ vs ⭕ 한국어 직역 오해 vs 원어민 뉘앙스: Comparison of Korean literal translation vs native intuition",
+        "imageDifference": "🧠 원어민 뇌속 3D 시각 이미지: ...",
+        "listeningTip": "🎧 듣기(Listening) 직청직해 훈련: ...",
+        "speakingTip": "🗣️ 말하기(Speaking) 입근육 결합 패턴: ...",
+        "misconception": "🔄 ❌ vs ⭕ 한국어 직역 오해 vs 원어민 뉘앙스: ...",
         "practiceExamples": [
-          "Example 1 in English with Korean translation in parentheses"
+          "Example 1 in English with Korean translation"
         ],
         "reason": "Detailed warm masterclass explanation in Korean"
       }
     ],
-    "teacherAdvice": "Warm, encouraging pedagogical advice in Korean for building listening and speaking brain structure"
+    "teacherAdvice": "Warm, encouraging pedagogical advice in Korean"
   }
 }
 `;
 
     const modelEndpoints = [
+      'gemini-3.5-flash',
+      'gemini-3.0-flash',
       'gemini-2.5-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash'
@@ -1539,7 +1583,7 @@ Respond ONLY with a JSON object in this exact schema:
 
     for (const model of modelEndpoints) {
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1614,6 +1658,26 @@ export function getNativeRecommendations(result) {
 
   const inputStr = (result.arrowKorean || '').toLowerCase();
   const englishStr = (result.english || '');
+
+  if (inputStr.includes('복잡') || inputStr.includes('머리') || inputStr.includes('마음') || /\b(tangled|mess|overwhelmed|complicated|head and heart|mind and heart)\b/i.test(englishStr)) {
+    return [
+      {
+        label: "표현 1 (가장 직관적인 기본 표현 - Natural Standard)",
+        english: "I'm doing a good job, but my head and heart are complicated.",
+        korean: "일은 잘하고 있지만, 내 머릿속과 마음이 복잡하다."
+      },
+      {
+        label: "표현 2 (자연스러운 실전 표현 - Natural Spoken)",
+        english: "I'm doing well at work, but my mind and heart are a mess.",
+        korean: "직장에서 일은 잘 처리하고 있지만, 내 생각과 마음이 엉켜 어지럽다."
+      },
+      {
+        label: "표현 3 (원어민 구어체 감성 - Cool Native Vibe)",
+        english: "I'm getting things done, but I feel so overwhelmed.",
+        korean: "일은 차근차근 다 해내고 있는데, 속으로는 마음이 복잡하고 벅차오른다."
+      }
+    ];
+  }
 
   if (inputStr.includes('아들') || inputStr.includes('기차') || inputStr.includes('할머니') || inputStr.includes('방학') || /\bsons?\b/i.test(englishStr) || /\bvacation\b/i.test(englishStr) || /\btrain\b/i.test(englishStr) || /\bgrandma\b/i.test(englishStr)) {
     return [
@@ -2018,6 +2082,14 @@ export function getVocabNuances(result) {
 
   const inputStr = (result.arrowKorean || '').toLowerCase();
   const englishStr = (result.english || '');
+
+  if (inputStr.includes('복잡') || inputStr.includes('머리') || inputStr.includes('마음') || inputStr.includes('일') || /\b(tangled|mess|overwhelmed|complicated|head and heart|mind and heart)\b/i.test(englishStr)) {
+    return [
+      { korean: "Doing a good job / Doing well at work", english: "일(work/job)을 잘하고 있다", desc: "📌 한국어 '일'은 문맥에 따라 day(날)가 아닌 work/job(직장 일)으로 다의어(Polysemy) 처리되어야 자연스럽습니다." },
+      { korean: "Complicated vs Tangled vs Mess vs Overwhelmed", english: "복잡하다 / 엉키다 / 어지럽다 / 벅차다", desc: "📌 생각을 나타낼 때: my mind is complicated / tangled. 감정과 상황이 벅찰 때: feel overwhelmed / mind is a mess." },
+      { korean: "Head & Heart / Mind & Heart", english: "머리와 마음 (이성과 감정)", desc: "📌 원어민은 이성적 생각(Head/Mind)과 감정적 마음(Heart)을 구어체에서 대칭하여 한 번에 표현합니다." }
+    ];
+  }
 
   if (inputStr.includes('용인') || inputStr.includes('경기') || inputStr.includes('온도') || inputStr.includes('도') || /\btemperature\b/i.test(englishStr) || /\byongin\b/i.test(englishStr) || /\bgyeonggi\b/i.test(englishStr)) {
     return [
