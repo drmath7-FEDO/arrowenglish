@@ -10,6 +10,7 @@ const VAULT_META_STORE = 'vault_meta';
 const HANDLE_KEY = 'vault_directory_handle';
 
 let activeDirectoryHandle = null;
+let pendingDirectoryHandle = null;
 let memoryVaultSnapshot = null;
 
 function getCachedVaultItems() {
@@ -291,14 +292,45 @@ async function writeDirectoryVaultMeta(dirHandle, meta) {
 }
 
 // --- Public Directory Selection API ---
-export async function selectLocalDirectory() {
+export async function reconnectStoredDirectory() {
+  const handle = pendingDirectoryHandle || (await getStoredDirectoryHandle());
+  if (!handle) return null;
+
+  try {
+    const hasPermission = await verifyDirectoryPermission(handle, true);
+    if (hasPermission) {
+      activeDirectoryHandle = handle;
+      pendingDirectoryHandle = null;
+      const snapshot = await readDirectoryVaultSnapshot(handle);
+      cacheVaultSnapshot(snapshot);
+      return snapshot;
+    }
+  } catch (err) {
+    console.warn('Failed reconnecting stored directory:', err);
+  }
+  return null;
+}
+
+export async function selectLocalDirectory(options = {}) {
   if (typeof window === 'undefined' || !('showDirectoryPicker' in window)) {
     throw new Error('이 브라우저는 PC 폴더 직접 연동(File System Access API)을 지원하지 않습니다. Google Chrome 또는 Microsoft Edge 브라우저를 이용해 주세요.');
   }
 
+  const forceNewPicker = typeof options === 'boolean' ? options : !!options?.forceNewPicker;
+
+  // 1. If stored handle exists and user did not explicitly request a new picker, attempt seamless reconnect!
+  if (!forceNewPicker) {
+    const reconnected = await reconnectStoredDirectory();
+    if (reconnected) {
+      return reconnected;
+    }
+  }
+
+  // 2. Otherwise open directory picker dialog
   const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
   await storeDirectoryHandle(dirHandle);
   activeDirectoryHandle = dirHandle;
+  pendingDirectoryHandle = null;
 
   const snapshot = await readDirectoryVaultSnapshot(dirHandle);
   cacheVaultSnapshot(snapshot);
@@ -308,6 +340,7 @@ export async function selectLocalDirectory() {
 export async function disconnectLocalDirectory() {
   await removeStoredDirectoryHandle();
   activeDirectoryHandle = null;
+  pendingDirectoryHandle = null;
   const snapshot = {
     items: getCachedVaultItems(),
     masteredCount: getCachedMasteredCount(),
@@ -318,11 +351,141 @@ export async function disconnectLocalDirectory() {
 }
 
 export function getDirectoryStatus() {
+  const handle = activeDirectoryHandle || pendingDirectoryHandle;
+  const folderName = handle?.name || '';
+  const lowerName = folderName.toLowerCase();
+  const isGoogleDrive = lowerName.includes('google') || lowerName.includes('drive') || lowerName.includes('gdrive');
+  const isCloudSync = isGoogleDrive || lowerName.includes('onedrive') || lowerName.includes('dropbox') || lowerName.includes('cloud');
+
   return {
     isConnected: !!activeDirectoryHandle,
-    folderName: activeDirectoryHandle?.name || '',
-    isSupported: typeof window !== 'undefined' && 'showDirectoryPicker' in window
+    hasStoredDirectory: !!(activeDirectoryHandle || pendingDirectoryHandle),
+    needsPermissionGrant: !activeDirectoryHandle && !!pendingDirectoryHandle,
+    folderName,
+    isSupported: typeof window !== 'undefined' && 'showDirectoryPicker' in window,
+    isCloudSync,
+    isGoogleDrive,
+    cloudType: isGoogleDrive ? 'Google Drive' : (isCloudSync ? 'Cloud Sync' : null)
   };
+}
+
+// --- Backup & Restore (JSON Export / Import) ---
+export function exportVaultBackup() {
+  const items = getCachedVaultItems();
+  const masteredCount = getCachedMasteredCount();
+
+  const backupData = {
+    version: 1,
+    appName: 'Arrow English AI',
+    exportedAt: new Date().toISOString(),
+    masteredCount,
+    itemsCount: items.length,
+    items
+  };
+
+  const jsonString = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fileName = `arrow_study_vault_backup_${dateStr}.json`;
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return {
+    success: true,
+    fileName,
+    itemsCount: items.length
+  };
+}
+
+export async function importVaultBackup(jsonContent, mode = 'merge') {
+  try {
+    let parsed = typeof jsonContent === 'string' ? JSON.parse(jsonContent) : jsonContent;
+
+    let newItems = [];
+    let newMasteredCount = 0;
+
+    if (Array.isArray(parsed)) {
+      newItems = parsed;
+    } else if (parsed && typeof parsed === 'object') {
+      newItems = Array.isArray(parsed.items) ? parsed.items : [];
+      newMasteredCount = typeof parsed.masteredCount === 'number' ? parsed.masteredCount : 0;
+    } else {
+      throw new Error('유효하지 않은 백업 파일 형식입니다.');
+    }
+
+    newItems = newItems.filter((item) => item && (item.id || item.english || item.arrowKorean));
+
+    const existingItems = getCachedVaultItems();
+    const existingMasteredCount = getCachedMasteredCount();
+
+    let finalItems = [];
+    let finalMasteredCount = 0;
+
+    if (mode === 'merge') {
+      const itemMap = new Map();
+      for (const item of existingItems) {
+        const id = item.id || item.english || item.arrowKorean;
+        itemMap.set(id, item);
+      }
+      for (const item of newItems) {
+        const id = item.id || item.english || item.arrowKorean;
+        if (!itemMap.has(id)) {
+          itemMap.set(id, {
+            ...item,
+            id,
+            savedAt: item.savedAt || new Date().toISOString()
+          });
+        }
+      }
+      finalItems = Array.from(itemMap.values());
+      finalMasteredCount = Math.max(existingMasteredCount, newMasteredCount);
+    } else {
+      finalItems = newItems.map((item) => ({
+        ...item,
+        id: item.id || item.english || item.arrowKorean || `vault-${Date.now()}`,
+        savedAt: item.savedAt || new Date().toISOString()
+      }));
+      finalMasteredCount = newMasteredCount;
+    }
+
+    finalItems.sort((left, right) => (right.savedAt || '').localeCompare(left.savedAt || ''));
+
+    if (activeDirectoryHandle) {
+      try {
+        for (const item of finalItems) {
+          await writeDirectoryVaultItem(activeDirectoryHandle, item);
+        }
+        await writeDirectoryVaultMeta(activeDirectoryHandle, { masteredCount: finalMasteredCount });
+      } catch (err) {
+        console.warn('Failed writing imported items to local directory:', err);
+      }
+    }
+
+    const snapshot = {
+      items: finalItems,
+      masteredCount: finalMasteredCount,
+      storagePath: activeDirectoryHandle ? `PC 폴더: [${activeDirectoryHandle.name}]` : ''
+    };
+
+    cacheVaultSnapshot(snapshot);
+    return {
+      success: true,
+      importedCount: newItems.length,
+      totalCount: finalItems.length,
+      masteredCount: finalMasteredCount,
+      snapshot
+    };
+  } catch (err) {
+    throw new Error(`백업 파일 복원 실패: ${err.message}`);
+  }
 }
 
 // --- Standard Vault API calls with fallbacks ---
@@ -432,33 +595,39 @@ export function subscribeToVaultChanges(listener) {
 }
 
 export async function loadVaultSnapshot() {
-  // 1. Dev Server API
+  // 1. Web File System Access API (Google Drive / PC Folder) - Highest Priority
+  if (!activeDirectoryHandle) {
+    const storedHandle = await getStoredDirectoryHandle();
+    if (storedHandle) {
+      try {
+        if ((await storedHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+          activeDirectoryHandle = storedHandle;
+          pendingDirectoryHandle = null;
+        } else {
+          pendingDirectoryHandle = storedHandle;
+        }
+      } catch {
+        pendingDirectoryHandle = storedHandle;
+      }
+    }
+  }
+
+  if (activeDirectoryHandle) {
+    try {
+      const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
+      cacheVaultSnapshot(snapshot);
+      return snapshot;
+    } catch (err) {
+      console.warn('Directory snapshot read failed, falling back:', err);
+    }
+  }
+
+  // 2. Dev Server API
   try {
     const snapshot = await requestVaultApi('/api/vault');
     cacheVaultSnapshot(snapshot);
     return snapshot;
   } catch {
-    // 2. Web File System Access API
-    if (!activeDirectoryHandle) {
-      const storedHandle = await getStoredDirectoryHandle();
-      if (storedHandle) {
-        const hasPermission = await verifyDirectoryPermission(storedHandle, true);
-        if (hasPermission) {
-          activeDirectoryHandle = storedHandle;
-        }
-      }
-    }
-
-    if (activeDirectoryHandle) {
-      try {
-        const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
-        cacheVaultSnapshot(snapshot);
-        return snapshot;
-      } catch (err) {
-        console.warn('Directory snapshot read failed, falling back:', err);
-      }
-    }
-
     // 3. IndexedDB Fallback (Unlimited capacity)
     const idbSnapshot = await getIndexedDbVaultSnapshot();
     if (idbSnapshot && (idbSnapshot.items.length > 0 || idbSnapshot.masteredCount > 0)) {
@@ -487,11 +656,43 @@ export async function saveToVault(result) {
       isSaved: false,
       items: getCachedVaultItems(),
       masteredCount: getCachedMasteredCount(),
-      storagePath: ''
+      storagePath: activeDirectoryHandle ? `PC 폴더: [${activeDirectoryHandle.name}]` : ''
     };
   }
 
-  // 1. Dev Server API
+  // 1. Web File System Access API (Google Drive / PC Folder) - Highest Priority
+  if (activeDirectoryHandle) {
+    try {
+      const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
+      const targetId = getVaultItemId(result);
+      const existingIndex = snapshot.items.findIndex(
+        (item) => item.id === targetId || item.arrowKorean === result.arrowKorean || item.english === result.english
+      );
+
+      let isSaved = false;
+      if (existingIndex >= 0) {
+        const itemToRemove = snapshot.items[existingIndex];
+        await deleteDirectoryVaultItem(activeDirectoryHandle, itemToRemove.id);
+        isSaved = false;
+      } else {
+        const newItem = {
+          ...result,
+          id: targetId,
+          savedAt: new Date().toISOString()
+        };
+        await writeDirectoryVaultItem(activeDirectoryHandle, newItem);
+        isSaved = true;
+      }
+
+      const newSnapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
+      cacheVaultSnapshot(newSnapshot);
+      return { isSaved, ...newSnapshot };
+    } catch (err) {
+      console.error('Failed writing to local PC directory:', err);
+    }
+  }
+
+  // 2. Dev Server API
   try {
     const snapshot = await requestVaultApi('/api/vault/toggle', {
       method: 'POST',
@@ -500,39 +701,7 @@ export async function saveToVault(result) {
 
     cacheVaultSnapshot(snapshot);
     return snapshot;
-  } catch (error) {
-    // 2. Web File System Access API
-    if (activeDirectoryHandle) {
-      try {
-        const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
-        const targetId = getVaultItemId(result);
-        const existingIndex = snapshot.items.findIndex(
-          (item) => item.id === targetId || item.arrowKorean === result.arrowKorean || item.english === result.english
-        );
-
-        let isSaved = false;
-        if (existingIndex >= 0) {
-          const itemToRemove = snapshot.items[existingIndex];
-          await deleteDirectoryVaultItem(activeDirectoryHandle, itemToRemove.id);
-          isSaved = false;
-        } else {
-          const newItem = {
-            ...result,
-            id: targetId,
-            savedAt: new Date().toISOString()
-          };
-          await writeDirectoryVaultItem(activeDirectoryHandle, newItem);
-          isSaved = true;
-        }
-
-        const newSnapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
-        cacheVaultSnapshot(newSnapshot);
-        return { isSaved, ...newSnapshot };
-      } catch (err) {
-        console.error('Failed writing to local PC directory:', err);
-      }
-    }
-
+  } catch (_error) {
     // 3. LocalStorage Fallback
     return toggleLocalVaultItem(result);
   }
@@ -543,11 +712,30 @@ export async function removeFromVault(itemId) {
     return {
       items: getCachedVaultItems(),
       masteredCount: getCachedMasteredCount(),
-      storagePath: ''
+      storagePath: activeDirectoryHandle ? `PC 폴더: [${activeDirectoryHandle.name}]` : ''
     };
   }
 
-  // 1. Dev Server API
+  // 1. Web File System Access API (Google Drive / PC Folder) - Highest Priority
+  if (activeDirectoryHandle) {
+    try {
+      await deleteDirectoryVaultItem(activeDirectoryHandle, itemId);
+      const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
+      const newMasteredCount = (snapshot.masteredCount || 0) + 1;
+      await writeDirectoryVaultMeta(activeDirectoryHandle, { masteredCount: newMasteredCount });
+
+      const updatedSnapshot = {
+        ...snapshot,
+        masteredCount: newMasteredCount
+      };
+      cacheVaultSnapshot(updatedSnapshot);
+      return updatedSnapshot;
+    } catch (err) {
+      console.error('Failed removing from local PC directory:', err);
+    }
+  }
+
+  // 2. Dev Server API
   try {
     const snapshot = await requestVaultApi('/api/vault/remove', {
       method: 'POST',
@@ -556,26 +744,7 @@ export async function removeFromVault(itemId) {
 
     cacheVaultSnapshot(snapshot);
     return snapshot;
-  } catch (error) {
-    // 2. Web File System Access API
-    if (activeDirectoryHandle) {
-      try {
-        await deleteDirectoryVaultItem(activeDirectoryHandle, itemId);
-        const snapshot = await readDirectoryVaultSnapshot(activeDirectoryHandle);
-        const newMasteredCount = (snapshot.masteredCount || 0) + 1;
-        await writeDirectoryVaultMeta(activeDirectoryHandle, { masteredCount: newMasteredCount });
-
-        const updatedSnapshot = {
-          ...snapshot,
-          masteredCount: newMasteredCount
-        };
-        cacheVaultSnapshot(updatedSnapshot);
-        return updatedSnapshot;
-      } catch (err) {
-        console.error('Failed removing from local PC directory:', err);
-      }
-    }
-
+  } catch (_error) {
     // 3. LocalStorage Fallback
     return removeLocalVaultItem(itemId);
   }

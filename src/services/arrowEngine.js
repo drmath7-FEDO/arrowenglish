@@ -1026,10 +1026,10 @@ export function parseArrowKoreanLocal(input) {
 
     const cleanTokenForEn = token.replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim();
 
-    const twoWord = i + 1 < tokens.length ? `${token} ${tokens[i+1]}` : "";
-    const threeWord = i + 2 < tokens.length ? `${token} ${tokens[i+1]} ${tokens[i+2]}` : "";
-    const cleanTwoWord = i + 1 < tokens.length ? `${cleanTokenForEn} ${tokens[i+1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
-    const cleanThreeWord = i + 2 < tokens.length ? `${cleanTokenForEn} ${tokens[i+1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()} ${tokens[i+2].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
+    const twoWord = i + 1 < tokens.length ? `${token} ${tokens[i + 1]}` : "";
+    const threeWord = i + 2 < tokens.length ? `${token} ${tokens[i + 1]} ${tokens[i + 2]}` : "";
+    const cleanTwoWord = i + 1 < tokens.length ? `${cleanTokenForEn} ${tokens[i + 1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
+    const cleanThreeWord = i + 2 < tokens.length ? `${cleanTokenForEn} ${tokens[i + 1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()} ${tokens[i + 2].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
 
     if (WORD_TRANSLATION_MAP[threeWord] || WORD_TRANSLATION_MAP[cleanThreeWord]) {
       token = threeWord;
@@ -1222,8 +1222,8 @@ export function parseArrowKoreanLocal(input) {
       `3. 시선과 손길이 닿아 나아가는 1차 대상은 **'${chunks[2]?.english || 'target'}'**입니다.`,
       `4. 전치사와 공간/시간 배치가 연속하여 화살표 어순(주인공➔동작➔대상➔전치사➔장소➔시간)으로 전개됩니다.`
     ],
-    prepositions: PREPOSITION_DICTIONARY.filter(p => 
-      cleanInput.toLowerCase().includes(p.word.split(' ')[0]) || 
+    prepositions: PREPOSITION_DICTIONARY.filter(p =>
+      cleanInput.toLowerCase().includes(p.word.split(' ')[0]) ||
       cleanInput.toLowerCase().includes('inside') ||
       cleanInput.toLowerCase().includes('after')
     ),
@@ -1265,10 +1265,10 @@ export async function parseArrowKoreanLocalAsync(input) {
 
     const cleanTokenForEn = token.replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim();
 
-    const twoWord = i + 1 < tokens.length ? `${token} ${tokens[i+1]}` : "";
-    const threeWord = i + 2 < tokens.length ? `${token} ${tokens[i+1]} ${tokens[i+2]}` : "";
-    const cleanTwoWord = i + 1 < tokens.length ? `${cleanTokenForEn} ${tokens[i+1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
-    const cleanThreeWord = i + 2 < tokens.length ? `${cleanTokenForEn} ${tokens[i+1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()} ${tokens[i+2].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
+    const twoWord = i + 1 < tokens.length ? `${token} ${tokens[i + 1]}` : "";
+    const threeWord = i + 2 < tokens.length ? `${token} ${tokens[i + 1]} ${tokens[i + 2]}` : "";
+    const cleanTwoWord = i + 1 < tokens.length ? `${cleanTokenForEn} ${tokens[i + 1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
+    const cleanThreeWord = i + 2 < tokens.length ? `${cleanTokenForEn} ${tokens[i + 1].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()} ${tokens[i + 2].replace(/\([\u3131-\u318E\uAC00-\uD7A3\s,.-]+\)/g, '').trim()}` : "";
 
     if (WORD_TRANSLATION_MAP[threeWord] || WORD_TRANSLATION_MAP[cleanThreeWord]) {
       token = threeWord;
@@ -1480,8 +1480,8 @@ export async function parseArrowKoreanLocalAsync(input) {
       `3. 시선과 손길이 닿아 나아가는 1차 대상은 **'${chunks[2]?.english || 'target'}'**입니다.`,
       `4. 전치사와 공간/시간 배치가 연속하여 화살표 어순(주인공➔동작➔대상➔전치사➔장소➔시간)으로 전개됩니다.`
     ],
-    prepositions: PREPOSITION_DICTIONARY.filter(p => 
-      cleanInput.toLowerCase().includes(p.word.split(' ')[0]) || 
+    prepositions: PREPOSITION_DICTIONARY.filter(p =>
+      cleanInput.toLowerCase().includes(p.word.split(' ')[0]) ||
       cleanInput.toLowerCase().includes('inside') ||
       cleanInput.toLowerCase().includes('after')
     ),
@@ -1574,11 +1574,14 @@ Respond ONLY with a JSON object in this exact schema:
 `;
 
     const modelEndpoints = [
-      'gemini-3.0-flash',
       'gemini-2.5-flash',
       'gemini-2.0-flash',
-      'gemini-1.5-flash'
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
     ];
+
+    let lastErrorDetails = '';
+    let isRateLimitHit = false;
 
     for (const model of modelEndpoints) {
       try {
@@ -1592,6 +1595,19 @@ Respond ONLY with a JSON object in this exact schema:
         });
 
         if (!response.ok) {
+          try {
+            const errData = await response.json();
+            const apiMsg = errData?.error?.message || `HTTP ${response.status} ${response.statusText}`;
+            lastErrorDetails = `[${model}] ${apiMsg}`;
+            if (response.status === 429 || apiMsg.includes('RESOURCE_EXHAUSTED')) {
+              isRateLimitHit = true;
+            }
+          } catch {
+            lastErrorDetails = `[${model}] HTTP ${response.status}`;
+            if (response.status === 429) {
+              isRateLimitHit = true;
+            }
+          }
           continue;
         }
 
@@ -1636,23 +1652,33 @@ Respond ONLY with a JSON object in this exact schema:
             teacherTip: "💡 원어민 뇌 가이드: 들을 때와 말할 때 거꾸로 뒤집지 말고 앞에서부터 단어 덩어리 순서대로 생각하세요!"
           }
         };
-      } catch {
-        // try next model
+      } catch (err) {
+        lastErrorDetails = `[${model}] ${err?.message || '네트워크 오류'}`;
       }
     }
 
-    // When Gemini Free API limit (15 RPM) is hit, fall back gracefully to Local Async Rule Engine
-    try {
-      const localResult = await parseArrowKoreanLocalAsync(arrowKoreanInput);
-      return {
-        ...localResult,
-        id: `local_fallback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        isRateLimited: true,
-        notice: "⚡ Google Gemini 무료 API 분당 제한(15회/분)에 도달하여, 학습 중단을 막기 위해 '로컬 스마트 어순 엔진'으로 즉시 자동 변환되었습니다. (약 30~60초 후 Gemini API가 자동 복구됩니다)"
-      };
-    } catch {
-      throw new Error("GEMINI_API_ERROR: 입력하신 Gemini API 키가 올바르지 않거나 변환 처리 중 오류가 발생했습니다.");
+    if (isRateLimitHit) {
+      try {
+        const localResult = await parseArrowKoreanLocalAsync(arrowKoreanInput);
+        return {
+          ...localResult,
+          id: `local_fallback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          isRateLimited: true,
+          notice: "⚡ Google Gemini 무료 API 분당 제한(15회/분)에 도달하여, 학습 중단을 막기 위해 '로컬 스마트 어순 엔진'으로 즉시 자동 전환되었습니다. (약 30~60초 후 Gemini API가 자동 복구됩니다)"
+        };
+      } catch {
+        // Fall back to throwing Error if local engine also fails
+      }
     }
+
+    if (lastErrorDetails) {
+      if (lastErrorDetails.includes('API key not valid') || lastErrorDetails.includes('API_KEY_INVALID') || lastErrorDetails.includes('400') || lastErrorDetails.includes('403')) {
+        throw new Error(`GEMINI_API_ERROR: Google Gemini API 키가 올바르지 않거나 권한이 없습니다.\n(상세 원인: ${lastErrorDetails})\n\n💡 Google AI Studio (https://aistudio.google.com/)에서 'AIzaSy...'로 시작하는 Gemini API Key를 새로 발급받아 [⚙️ API 키 설정]에 입력해 주세요.`);
+      }
+      throw new Error(`GEMINI_API_ERROR: Google Gemini API 호출 중 오류가 발생했습니다.\n(상세 원인: ${lastErrorDetails})`);
+    }
+
+    throw new Error("GEMINI_API_ERROR: Google Gemini API 응답 생성에 실패했습니다. API 키를 확인하시거나 잠시 후 다시 시도해 주세요.");
   }
 
   throw new Error("API_KEY_REQUIRED: Gemini API 키가 설정되지 않았습니다. 상단 [⚙️ API 키 설정]에서 API 키를 입력해 주세요.");

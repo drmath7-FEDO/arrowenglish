@@ -1,6 +1,5 @@
 import {
   PRESET_SENTENCES,
-  parseArrowKoreanLocalAsync,
   translateWithGemini
 } from './arrowEngine';
 

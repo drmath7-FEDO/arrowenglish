@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ArrowTranslator } from './components/ArrowTranslator';
@@ -8,6 +7,7 @@ import { StudyVault } from './components/StudyVault';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GuideModal } from './components/GuideModal';
 import { EmailModal } from './components/EmailModal';
+import { FolderSyncModal } from './components/FolderSyncModal';
 import { getStoredApiKey, fetchStoredApiKeyAsync } from './services/apiKeyStorage';
 import { initVaultStorage } from './services/vaultService';
 
@@ -17,6 +17,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [emailTargetResult, setEmailTargetResult] = useState(null);
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
 
@@ -58,6 +59,7 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenGuide={() => setIsGuideOpen(true)}
         onOpenEmailModal={handleOpenEmailModal}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
         theme={theme}
         toggleTheme={toggleTheme}
         currentResult={currentResult}
@@ -74,6 +76,7 @@ export default function App() {
           <StudyVault
             onNavigateToTranslator={() => setActiveTab('translator')}
             onOpenEmailModal={handleOpenEmailModal}
+            onOpenSyncModal={() => setIsSyncModalOpen(true)}
           />
         )}
       </main>
@@ -109,6 +112,12 @@ export default function App() {
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
         result={emailTargetResult || currentResult}
+      />
+
+      {/* Folder & Cloud Sync Modal */}
+      <FolderSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
       />
     </div>
   );

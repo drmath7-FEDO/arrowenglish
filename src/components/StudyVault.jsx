@@ -1,4 +1,3 @@
-// src/components/StudyVault.jsx
 import React, { useState, useEffect } from 'react';
 import { getVaultItems, removeFromVault, getMasteredCount, loadVaultSnapshot, subscribeToVaultChanges } from '../services/vaultService';
 import { exportToPDF } from '../services/exportService';
@@ -17,10 +16,12 @@ import {
   Award,
   Calendar,
   FolderOpen,
-  Mail
+  Mail,
+  Cloud,
+  FileJson
 } from 'lucide-react';
 
-export function StudyVault({ onNavigateToTranslator, onOpenEmailModal }) {
+export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyncModal }) {
   const [items, setItems] = useState([]);
   const [masteredCount, setMasteredCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,12 +127,31 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal }) {
             <p className="text-xs sm:text-sm text-slate-300">
               저장해 둔 문장의 6단계 시순서 어순과 3색 원어민 뉘앙스를 언제든지 복습하고, 완전 학습 후 지워보세요!
             </p>
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 space-y-1 mt-2">
-              <p className="font-semibold text-amber-300 flex items-center gap-1.5">
-                💾 데이터 보관 안내:
-              </p>
-              <p className="text-slate-400">
-                학습자료실 데이터는 현재 사용 중인 브라우저(localStorage)에 안전하게 저장됩니다. 다른 기기 접속이나 브라우저 데이터 삭제를 대비해 중요한 문장은 <strong className="text-emerald-300">[MD 저장]</strong> 또는 <strong className="text-indigo-300">[PDF 저장]</strong>으로 파일 백업해두세요!
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 space-y-2 mt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                  <Cloud className="w-4 h-4 text-emerald-400" />
+                  <span>💡 PC 교체 시 학습자료 자동 동기화 팁:</span>
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onOpenSyncModal && onOpenSyncModal()}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-extrabold text-[11px] flex items-center gap-1 transition-colors"
+                  >
+                    <Cloud className="w-3 h-3 text-emerald-400" />
+                    <span>☁️ 구글 드라이브 연동</span>
+                  </button>
+                  <button
+                    onClick={() => onOpenSyncModal && onOpenSyncModal()}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-extrabold text-[11px] flex items-center gap-1 transition-colors"
+                  >
+                    <FileJson className="w-3 h-3 text-amber-400" />
+                    <span>📦 백업 & 복원</span>
+                  </button>
+                </div>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                PC를 바꿔도 학습 자료를 복사/붙여넣기 할 필요 없이 <strong className="text-emerald-300">[구글 드라이브]</strong> 폴더를 연동해 두면 모든 PC에서 자동 동기화됩니다. 또는 <strong className="text-amber-300">[백업 & 복원]</strong>으로 <code className="text-amber-200">.json</code> 파일을 다운받아 손쉽게 백업할 수도 있습니다.
               </p>
             </div>
             {storagePath && (

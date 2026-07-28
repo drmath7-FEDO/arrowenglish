@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { downloadMarkdown, exportToPDF } from '../services/exportService';
-import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen, HardDrive, Mail } from 'lucide-react';
-import { getVaultItems, subscribeToVaultChanges, selectLocalDirectory, disconnectLocalDirectory, getDirectoryStatus } from '../services/vaultService';
+import { ArrowRight, BookOpen, Key, Sparkles, Sun, Moon, HelpCircle, FileText, Printer, FolderOpen, HardDrive, Mail, Cloud } from 'lucide-react';
+import { getVaultItems, subscribeToVaultChanges, getDirectoryStatus } from '../services/vaultService';
+import { FolderSyncModal } from './FolderSyncModal';
 
-export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, theme, toggleTheme, currentResult, onOpenEmailModal }) {
+export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, theme, toggleTheme, currentResult, onOpenEmailModal, onOpenSyncModal }) {
   const [vaultCount, setVaultCount] = useState(() => getVaultItems().length);
   const [dirStatus, setDirStatus] = useState(() => getDirectoryStatus());
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     setVaultCount(getVaultItems().length);
@@ -17,41 +19,20 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, t
     });
   }, []);
 
-  const handleSelectDirectory = async () => {
-    if (dirStatus.isConnected) {
-      const confirmChange = window.confirm(`현재 PC 폴더 [${dirStatus.folderName}]와 연동되어 있습니다.\n\n다른 폴더로 변경하거나 연동을 해제하시겠습니까?\n'확인': 새 폴더 선택 / '취소': 연동 해제`);
-      if (confirmChange) {
-        try {
-          await selectLocalDirectory();
-          const newStatus = getDirectoryStatus();
-          setDirStatus(newStatus);
-          alert(`✨ 새 PC 폴더 [${newStatus.folderName}]와 연결되었습니다!`);
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            alert(err.message || '폴더 선택 중 오류가 발생했습니다.');
-          }
-        }
-      } else {
-        await disconnectLocalDirectory();
-        setDirStatus(getDirectoryStatus());
-        alert('PC 폴더 연동이 해제되었습니다. (브라우저 기본 저장소로 전환)');
-      }
-    } else {
-      try {
-        const snapshot = await selectLocalDirectory();
-        const newStatus = getDirectoryStatus();
-        setDirStatus(newStatus);
-        alert(`✨ PC 폴더 [${newStatus.folderName}]와 성공적으로 연결되었습니다!\n이제 저장하는 모든 단어가 내 PC 폴더에 .json 파일로 저장됩니다.`);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          alert(err.message || '폴더 선택 중 오류가 발생했습니다.');
-        }
-      }
-    }
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
   };
 
   return (
     <header className="glass-panel sticky top-4 z-40 mx-4 my-4 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-500 text-slate-950 font-bold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce border border-emerald-300">
+          <Sparkles className="w-5 h-5 text-slate-950" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
       {/* Brand Logo */}
       <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('translator')}>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-sky-400 to-emerald-400 p-0.5 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -125,27 +106,48 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, t
         </button>
       </nav>
 
-      {/* Right Controls: PC Directory + Export Buttons + Settings & Theme */}
+      {/* Right Controls: PC Directory & Cloud Sync + Export Buttons + Settings & Theme */}
       <div className="flex items-center gap-2.5">
-        {/* PC Local Folder Connect Button */}
+        {/* PC / Google Drive Cloud Sync Button */}
         {dirStatus.isConnected ? (
           <button
-            onClick={handleSelectDirectory}
-            className="btn-secondary text-xs bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 flex items-center gap-1.5 shadow-sm"
-            title={`PC 폴더 [${dirStatus.folderName}] 연동 중 (클릭하여 변경 또는 해제)`}
+            onClick={() => onOpenSyncModal && onOpenSyncModal()}
+            className={`btn-secondary text-xs flex items-center gap-1.5 shadow-sm transition-all ${
+              dirStatus.isCloudSync
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20'
+                : 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20'
+            }`}
+            title={`${dirStatus.isCloudSync ? '구글 드라이브' : 'PC 폴더'} [${dirStatus.folderName}] 연동 중 (클릭하여 동기화 관리)`}
           >
-            <HardDrive className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline">PC 폴더: [{dirStatus.folderName}]</span>
+            {dirStatus.isCloudSync ? (
+              <Cloud className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            ) : (
+              <HardDrive className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+            )}
+            <span className="hidden sm:inline">
+              {dirStatus.isCloudSync ? '☁️ Google Drive' : '💻 PC 폴더'}: [{dirStatus.folderName}]
+            </span>
             <span className="sm:hidden">[{dirStatus.folderName}]</span>
+          </button>
+        ) : dirStatus.needsPermissionGrant ? (
+          <button
+            onClick={() => onOpenSyncModal && onOpenSyncModal()}
+            className="btn-secondary text-xs bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30 flex items-center gap-1.5 shadow-sm animate-pulse"
+            title={`기존 연동 폴더 [${dirStatus.folderName}] 기억됨 (클릭하여 원클릭 권한 승인)`}
+          >
+            <Cloud className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">⚡ 폴더 [{dirStatus.folderName}] 승인</span>
+            <span className="sm:hidden">⚡ [{dirStatus.folderName}] 승인</span>
           </button>
         ) : (
           <button
-            onClick={handleSelectDirectory}
-            className="btn-secondary text-xs bg-slate-800/90 border-slate-700/80 text-slate-300 hover:text-white hover:bg-slate-700/80 flex items-center gap-1.5"
-            title="웹 접속 시에도 내 PC 폴더에 직접 저장되도록 폴더 연동"
+            onClick={() => onOpenSyncModal && onOpenSyncModal()}
+            className="btn-secondary text-xs bg-gradient-to-r from-emerald-950/60 to-slate-900 border-emerald-500/40 text-emerald-300 hover:text-white hover:border-emerald-400 flex items-center gap-1.5 shadow-sm"
+            title="구글 드라이브 또는 PC 로컬 폴더를 연동하여 PC 교체 시에도 자동 동기화"
           >
-            <HardDrive className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">PC 폴더 연동</span>
+            <Cloud className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span className="hidden sm:inline">☁️ 구글드라이브/폴더 연동</span>
+            <span className="sm:hidden">☁️ 폴더 연동</span>
           </button>
         )}
 
