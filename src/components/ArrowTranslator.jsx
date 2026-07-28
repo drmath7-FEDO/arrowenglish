@@ -46,13 +46,20 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
 
   const handleToggleVault = async () => {
     if (!result) return;
-    const res = await saveToVault(result);
-    setIsSavedInVault(res.isSaved);
-    if (res.isSaved) {
-      setVaultToastMsg('✨ [학습자료실]에 성공적으로 보관되었습니다! 언제든지 되돌아보며 복습하실 수 있습니다.');
-      setTimeout(() => setVaultToastMsg(''), 3500);
-    } else {
-      setVaultToastMsg('🗑️ [학습자료실]에서 보관 해제되었습니다.');
+    try {
+      const res = await saveToVault(result);
+      if (!res) return;
+      setIsSavedInVault(!!res.isSaved);
+      if (res.isSaved) {
+        setVaultToastMsg('✨ [학습자료실]에 성공적으로 보관되었습니다! 언제든지 되돌아보며 복습하실 수 있습니다.');
+        setTimeout(() => setVaultToastMsg(''), 3500);
+      } else {
+        setVaultToastMsg('🗑️ [학습자료실]에서 보관 해제되었습니다.');
+        setTimeout(() => setVaultToastMsg(''), 3500);
+      }
+    } catch (err) {
+      console.error('Failed saving item to vault:', err);
+      setVaultToastMsg('⚠️ 학습자료실 저장 중 문제가 발생했습니다.');
       setTimeout(() => setVaultToastMsg(''), 3500);
     }
   };

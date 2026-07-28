@@ -22,11 +22,17 @@ function sanitizeFileName(name) {
 }
 
 function getVaultItemId(result) {
-  return result?.id || result?.english || result?.arrowKorean || `vault-${Date.now()}`;
+  if (result?.id && typeof result.id === 'string' && result.id.trim()) {
+    return result.id.trim();
+  }
+  const base = result?.english || result?.arrowKorean || 'vault-item';
+  const cleanBase = sanitizeFileName(base).slice(0, 30);
+  return `vault_${cleanBase}_${Date.now()}`;
 }
 
 function getVaultItemFilePath(itemId) {
-  return path.join(vaultDir, `${sanitizeFileName(itemId)}.json`);
+  const safeName = sanitizeFileName(itemId).slice(0, 80);
+  return path.join(vaultDir, `${safeName}.json`);
 }
 
 async function ensureVaultDir() {
@@ -63,6 +69,9 @@ async function readVaultItems() {
 
     const item = await readJsonFile(path.join(vaultDir, entry.name), null);
     if (item) {
+      if (!item.id) {
+        item.id = entry.name.replace(/\.json$/, '');
+      }
       items.push(item);
     }
   }
@@ -75,9 +84,9 @@ async function findExistingVaultItem(result) {
   const targetId = getVaultItemId(result);
 
   return items.find((item) =>
-    item.id === targetId ||
-    item.arrowKorean === result?.arrowKorean ||
-    item.english === result?.english
+    (item.id && item.id === targetId) ||
+    (item.arrowKorean && item.arrowKorean === result?.arrowKorean) ||
+    (item.english && item.english === result?.english)
   ) || null;
 }
 
@@ -100,9 +109,10 @@ async function toggleVaultItem(result) {
     return { isSaved: false, ...(await createVaultSnapshot()) };
   }
 
+  const itemId = getVaultItemId(result);
   const item = {
     ...result,
-    id: getVaultItemId(result),
+    id: itemId,
     savedAt: new Date().toISOString()
   };
 
