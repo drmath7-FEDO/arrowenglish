@@ -1574,7 +1574,6 @@ Respond ONLY with a JSON object in this exact schema:
 `;
 
     const modelEndpoints = [
-      'gemini-3.6-flash',
       'gemini-2.5-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash'
@@ -1615,7 +1614,7 @@ Respond ONLY with a JSON object in this exact schema:
         });
 
         return {
-          id: `gemini-${Date.now()}`,
+          id: `gemini-${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           arrowKorean: arrowKoreanInput,
           english: parsedData.english,
           chunks: parsedData.chunks,
@@ -1637,11 +1636,22 @@ Respond ONLY with a JSON object in this exact schema:
           }
         };
       } catch {
-        // continue to next model
+        // try next model
       }
     }
 
-    throw new Error("GEMINI_API_ERROR: 입력하신 Gemini API 키가 올바르지 않거나 호출에 실패했습니다. 유효한 API 키를 확인해 주세요.");
+    // When Gemini Free API limit (15 RPM) is hit, fall back gracefully to Local Async Rule Engine
+    try {
+      const localResult = await parseArrowKoreanLocalAsync(arrowKoreanInput);
+      return {
+        ...localResult,
+        id: `local_fallback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        isRateLimited: true,
+        notice: "⚡ Google Gemini 무료 API 분당 제한(15회/분)에 도달하여, 학습 중단을 막기 위해 '로컬 스마트 어순 엔진'으로 즉시 자동 변환되었습니다. (약 30~60초 후 Gemini API가 자동 복구됩니다)"
+      };
+    } catch {
+      throw new Error("GEMINI_API_ERROR: 입력하신 Gemini API 키가 올바르지 않거나 변환 처리 중 오류가 발생했습니다.");
+    }
   }
 
   throw new Error("API_KEY_REQUIRED: Gemini API 키가 설정되지 않았습니다. 상단 [⚙️ API 키 설정]에서 API 키를 입력해 주세요.");

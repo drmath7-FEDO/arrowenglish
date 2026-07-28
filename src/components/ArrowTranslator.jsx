@@ -257,6 +257,14 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
       {/* Translation & Visual Breakdown Result Area */}
       {result && (
         <div className="space-y-8 animate-fade-in">
+          {/* Rate Limit / Local Fallback Notice Banner */}
+          {result.notice && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm font-semibold flex items-center gap-3 animate-pulse">
+              <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
+              <span>{result.notice}</span>
+            </div>
+          )}
+
           {/* 🌟 1. Exact English Sentence & Arrow Flow Mapping */}
           <section className="glass-panel p-8 relative overflow-hidden border-indigo-500/30 space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
