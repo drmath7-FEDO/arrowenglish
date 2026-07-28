@@ -1,6 +1,6 @@
 // src/components/ArrowPractice.jsx
 import React, { useState } from 'react';
-import { PRESET_SENTENCES } from '../services/arrowEngine';
+import { PRESET_SENTENCES } from '../services/translationService';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, RotateCcw, HelpCircle, ArrowRight, Award } from 'lucide-react';
 
