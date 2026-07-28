@@ -1574,6 +1574,7 @@ Respond ONLY with a JSON object in this exact schema:
 `;
 
     const modelEndpoints = [
+      'gemini-3.0-flash',
       'gemini-2.5-flash',
       'gemini-2.0-flash',
       'gemini-1.5-flash'
