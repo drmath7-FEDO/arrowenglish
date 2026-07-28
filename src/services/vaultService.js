@@ -3,13 +3,19 @@ const MASTERED_COUNT_KEY = 'arrow_vault_mastered_count';
 const VAULT_UPDATED_EVENT = 'arrow-vault-updated';
 
 const DB_NAME = 'ArrowEnglishDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'handles';
+const VAULT_ITEMS_STORE = 'vault_items';
+const VAULT_META_STORE = 'vault_meta';
 const HANDLE_KEY = 'vault_directory_handle';
 
 let activeDirectoryHandle = null;
+let memoryVaultSnapshot = null;
 
 function getCachedVaultItems() {
+  if (memoryVaultSnapshot?.items) {
+    return memoryVaultSnapshot.items;
+  }
   try {
     const raw = localStorage.getItem(VAULT_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -19,6 +25,9 @@ function getCachedVaultItems() {
 }
 
 function getCachedMasteredCount() {
+  if (typeof memoryVaultSnapshot?.masteredCount === 'number') {
+    return memoryVaultSnapshot.masteredCount;
+  }
   try {
     const raw = localStorage.getItem(MASTERED_COUNT_KEY);
     return raw ? parseInt(raw, 10) : 0;
@@ -28,12 +37,20 @@ function getCachedMasteredCount() {
 }
 
 function cacheVaultSnapshot(snapshot) {
+  memoryVaultSnapshot = {
+    items: snapshot.items || [],
+    masteredCount: snapshot.masteredCount || 0,
+    storagePath: snapshot.storagePath || ''
+  };
+
   try {
     localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(snapshot.items || []));
     localStorage.setItem(MASTERED_COUNT_KEY, String(snapshot.masteredCount || 0));
   } catch {
-    // Ignore cache write failures and keep the app usable.
+    // Ignore localStorage QuotaExceededError - IndexedDB handles unlimited items.
   }
+
+  saveIndexedDbVaultSnapshot(snapshot);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(VAULT_UPDATED_EVENT, {
@@ -47,7 +64,7 @@ function cacheVaultSnapshot(snapshot) {
   }
 }
 
-// --- IndexedDB Directory Handle Storage ---
+// --- IndexedDB Directory & Items Storage ---
 function openDirectoryDb() {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
@@ -59,10 +76,66 @@ function openDirectoryDb() {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
       }
+      if (!db.objectStoreNames.contains(VAULT_ITEMS_STORE)) {
+        db.createObjectStore(VAULT_ITEMS_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(VAULT_META_STORE)) {
+        db.createObjectStore(VAULT_META_STORE);
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+async function getIndexedDbVaultSnapshot() {
+  try {
+    const db = await openDirectoryDb();
+    const items = await new Promise((resolve) => {
+      const tx = db.transaction(VAULT_ITEMS_STORE, 'readonly');
+      const store = tx.objectStore(VAULT_ITEMS_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+
+    const masteredCount = await new Promise((resolve) => {
+      const tx = db.transaction(VAULT_META_STORE, 'readonly');
+      const store = tx.objectStore(VAULT_META_STORE);
+      const req = store.get('masteredCount');
+      req.onsuccess = () => resolve(req.result || 0);
+      req.onerror = () => resolve(0);
+    });
+
+    items.sort((left, right) => (right.savedAt || '').localeCompare(left.savedAt || ''));
+
+    return {
+      items,
+      masteredCount: typeof masteredCount === 'number' ? masteredCount : 0,
+      storagePath: ''
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function saveIndexedDbVaultSnapshot(snapshot) {
+  try {
+    const db = await openDirectoryDb();
+    const tx = db.transaction([VAULT_ITEMS_STORE, VAULT_META_STORE], 'readwrite');
+    const itemsStore = tx.objectStore(VAULT_ITEMS_STORE);
+    const metaStore = tx.objectStore(VAULT_META_STORE);
+
+    itemsStore.clear();
+    for (const item of (snapshot.items || [])) {
+      if (item && item.id) {
+        itemsStore.put(item);
+      }
+    }
+    metaStore.put(snapshot.masteredCount || 0, 'masteredCount');
+  } catch (err) {
+    console.warn('Failed writing to IndexedDB:', err);
+  }
 }
 
 async function getStoredDirectoryHandle() {
@@ -388,7 +461,14 @@ export async function loadVaultSnapshot() {
       }
     }
 
-    // 3. LocalStorage Fallback
+    // 3. IndexedDB Fallback (Unlimited capacity)
+    const idbSnapshot = await getIndexedDbVaultSnapshot();
+    if (idbSnapshot && (idbSnapshot.items.length > 0 || idbSnapshot.masteredCount > 0)) {
+      cacheVaultSnapshot(idbSnapshot);
+      return idbSnapshot;
+    }
+
+    // 4. LocalStorage Fallback & Auto Migration to IndexedDB
     const snapshot = {
       items: getCachedVaultItems(),
       masteredCount: getCachedMasteredCount(),

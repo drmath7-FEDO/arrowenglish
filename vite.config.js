@@ -238,6 +238,14 @@ export default defineConfig({
   plugins: [react(), createVaultApiPlugin()],
   server: {
     host: true,
-    port: 5173
+    port: 5173,
+    watch: {
+      ignored: ['**/학습자료실/**', '**/_api_key.json']
+    }
+  },
+  preview: {
+    watch: {
+      ignored: ['**/학습자료실/**', '**/_api_key.json']
+    }
   }
 });
