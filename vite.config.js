@@ -27,7 +27,7 @@ function getVaultItemId(result) {
   }
   const base = result?.english || result?.arrowKorean || 'vault-item';
   const cleanBase = sanitizeFileName(base).slice(0, 30);
-  return `vault_${cleanBase}_${Date.now()}`;
+  return `vault_${cleanBase}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
 function getVaultItemFilePath(itemId) {
@@ -81,13 +81,10 @@ async function readVaultItems() {
 
 async function findExistingVaultItem(result) {
   const items = await readVaultItems();
-  const targetId = getVaultItemId(result);
+  const targetId = result?.id ? result.id.trim() : null;
 
-  return items.find((item) =>
-    (item.id && item.id === targetId) ||
-    (item.arrowKorean && item.arrowKorean === result?.arrowKorean) ||
-    (item.english && item.english === result?.english)
-  ) || null;
+  if (!targetId) return null;
+  return items.find((item) => item.id === targetId) || null;
 }
 
 async function createVaultSnapshot() {
@@ -116,16 +113,14 @@ async function toggleVaultItem(result) {
     savedAt: new Date().toISOString()
   };
 
-  await fs.writeFile(getVaultItemFilePath(item.id), JSON.stringify(item, null, 2), 'utf8');
+  await fs.writeFile(getVaultItemFilePath(itemId), JSON.stringify(item, null, 2), 'utf8');
   return { isSaved: true, ...(await createVaultSnapshot()) };
 }
 
 async function removeVaultItem(itemId) {
   await ensureVaultDir();
   const items = await readVaultItems();
-  const targetItem = items.find((item) =>
-    item.id === itemId || item.arrowKorean === itemId || item.english === itemId
-  );
+  const targetItem = items.find((item) => item.id === itemId);
 
   if (targetItem) {
     await fs.rm(getVaultItemFilePath(targetItem.id), { force: true });

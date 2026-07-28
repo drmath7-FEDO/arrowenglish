@@ -343,11 +343,11 @@ async function requestVaultApi(url, options = {}) {
 
 function toggleLocalVaultItem(result) {
   const items = getCachedVaultItems();
-  const targetId = result.id || result.english || result.arrowKorean || `vault-${Date.now()}`;
+  const targetId = (result?.id && typeof result.id === 'string' && result.id.trim())
+    ? result.id.trim()
+    : getVaultItemId(result);
 
-  const existingIndex = items.findIndex((item) =>
-    item.id === targetId || item.arrowKorean === result.arrowKorean || item.english === result.english
-  );
+  const existingIndex = items.findIndex((item) => item.id === targetId);
 
   let isSaved = false;
   let newItems = [];
@@ -377,9 +377,7 @@ function toggleLocalVaultItem(result) {
 
 function removeLocalVaultItem(itemId) {
   const items = getCachedVaultItems();
-  const existingIndex = items.findIndex((item) =>
-    item.id === itemId || item.arrowKorean === itemId || item.english === itemId
-  );
+  const existingIndex = items.findIndex((item) => item.id === itemId);
 
   let newItems = items;
   let masteredCount = getCachedMasteredCount();
@@ -413,11 +411,11 @@ export function isItemSaved(resultOrId) {
   const items = getCachedVaultItems();
   const targetId = typeof resultOrId === 'string'
     ? resultOrId
-    : (resultOrId.id || resultOrId.english || resultOrId.arrowKorean);
+    : (resultOrId.id || null);
 
-  return items.some((item) =>
-    item.id === targetId || item.english === targetId || item.arrowKorean === targetId
-  );
+  if (!targetId) return false;
+
+  return items.some((item) => item.id === targetId);
 }
 
 export function subscribeToVaultChanges(listener) {
