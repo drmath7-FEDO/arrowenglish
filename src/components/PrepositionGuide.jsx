@@ -15,10 +15,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-/**
- * Generates direct dictionary links for a given preposition word.
- * Each dictionary provides preposition-specific example-rich pages.
- */
 function getDictionaryLinks(word) {
   const encoded = encodeURIComponent(word);
   return [
@@ -118,8 +114,8 @@ export function PrepositionGuide() {
         </h2>
 
         <p className="text-slate-300 text-sm max-w-3xl mx-auto leading-relaxed">
-          전치사를 한국어 뜻(<span className="text-slate-400 underline decoration-indigo-500/50">~에, ~의, ~를 위해</span>)으로 암기하지 마세요!
-          주인공에서 출발한 <strong className="text-amber-300 font-semibold">시선과 물리적 동작의 화살표 그림</strong>으로 단 한 번에 직관 이해합니다.
+          전치사를 한국어 뜻(~에, ~의, ~를 위해)으로 암기하지 마세요!
+          주인공에서 출발한 시선과 물리적 동작의 화살표 그림으로 단 한 번에 직관 이해합니다.
         </p>
 
         {/* Search Bar */}
@@ -215,246 +211,252 @@ export function PrepositionGuide() {
         )}
       </div>
 
-      {/* Main Content Area */}
-      {showNuancesOnly ? (
-        /* NUANCE COMPARISON CARDS VIEW */
-        <div className="space-y-6 animate-fade-in">
-          <div className="glass-panel p-6 border-amber-500/30 bg-amber-500/5 space-y-2">
-            <h3 className="text-lg font-bold text-amber-300 flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              <span>전치사 뉘앙스 비교 꿀팁 (Nuance Comparison Guide)</span>
-            </h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              영어 시험과 실제 회화에서 가장 많이 헷갈리는 전치사 쌍(in vs at, by vs until, for vs during 등)의 핵심 차이를 그림과 함께 확실하게 잡아드립니다.
-            </p>
-          </div>
+      {/* Style definitions for transitions */}
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredNuances.map((nuance) => (
-              <div
-                key={nuance.id}
-                className="glass-panel p-6 space-y-4 hover:border-amber-500/40 transition-all duration-300"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span>{nuance.title}</span>
-                  </h4>
-                  <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                    {nuance.tag}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-300 font-medium bg-slate-950/70 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                  {nuance.summary}
+      {/* Main Content Area (Side-by-Side Flex Layout) */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start relative">
+        
+        {/* Left Side: Prepositions List */}
+        <div className={`transition-all duration-300 w-full ${selectedPreposition ? 'lg:w-[60%] xl:w-[65%]' : 'lg:w-full'}`}>
+          {showNuancesOnly ? (
+            /* NUANCE COMPARISON CARDS VIEW */
+            <div className="space-y-6 animate-fade-in">
+              <div className="glass-panel p-6 border-amber-500/30 bg-amber-500/5 space-y-2">
+                <h3 className="text-lg font-bold text-amber-300 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  <span>전치사 뉘앙스 비교 꿀팁 (Nuance Comparison Guide)</span>
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  영어 시험과 실제 회화에서 가장 많이 헷갈리는 전치사 쌍(in vs at, by vs until, for vs during 등)의 핵심 차이를 그림과 함께 확실하게 잡아드립니다.
                 </p>
-
-                <div className="space-y-2 pt-2">
-                  {nuance.details.map((detail, dIdx) => (
-                    <div key={dIdx} className="bg-slate-900/90 rounded-xl p-3 border border-slate-800/80 text-xs space-y-1.5">
-                      <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-                        📌 {detail.aspect}
-                      </span>
-                      <div className="grid grid-cols-1 gap-1 text-slate-200">
-                        <p className="flex items-center gap-1.5 text-sky-300">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-sky-400" />
-                          <span>{detail.first}</span>
-                        </p>
-                        {detail.second && (
-                          <p className="flex items-center gap-1.5 text-emerald-300">
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
-                            <span>{detail.second}</span>
-                          </p>
-                        )}
-                        {detail.third && (
-                          <p className="flex items-center gap-1.5 text-purple-300">
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-                            <span>{detail.third}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-2 border-t border-slate-800">
-                  <p className="text-xs font-medium text-amber-300/90 italic">
-                    {nuance.tip}
-                  </p>
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        /* STANDARD PREPOSITION DICTIONARY GRID VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-          {filteredPrepositions.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => setSelectedPreposition(item)}
-              className="glass-panel p-6 space-y-4 hover:border-indigo-500/50 transition-all duration-300 group hover:-translate-y-1 cursor-pointer relative flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                {/* Header Row */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800 group-hover:scale-110 transition-transform">
-                      {item.visualIcon}
-                    </span>
-                    <div>
-                      <h3 className="text-xl font-extrabold text-white font-brand group-hover:text-indigo-400 transition-colors flex items-center gap-2">
-                        <span>{item.word}</span>
-                      </h3>
-                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border inline-block mt-1 ${getCategoryBadgeClass(item.category)}`}>
-                        {item.categoryLabel}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSpeak(item.word);
-                    }}
-                    className="p-2 rounded-lg bg-slate-800/80 text-slate-400 hover:text-sky-300 hover:bg-slate-700 transition-all shrink-0"
-                    title="발음 듣기"
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredNuances.map((nuance) => (
+                  <div
+                    key={nuance.id}
+                    className="glass-panel p-6 space-y-4 hover:border-amber-500/40 transition-all duration-300"
                   >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Arrow Meaning Badge */}
-                <div className="inline-block px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold w-full">
-                  🎯 시각 이미지: {item.arrowMeaning}
-                </div>
-
-                {/* Core Concept */}
-                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                  {item.coreConcept}
-                </p>
-              </div>
-
-              {/* Example Snippet */}
-              <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  대표 예시
-                </span>
-                {item.examples && item.examples.length > 0 ? (
-                  <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-xs space-y-1">
-                    <p className="font-semibold text-sky-300 flex items-center justify-between">
-                      <span>"{item.examples[0].en}"</span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 transition-colors" />
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      → {item.examples[0].kr}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400">"{item.example}"</p>
-                )}
-
-                {/* Phrasal Verbs Preview */}
-                {item.phrasalVerbs && item.phrasalVerbs.length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {item.phrasalVerbs.slice(0, 2).map((pv, idx) => (
-                      <span key={idx} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">
-                        {pv}
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        <span>{nuance.title}</span>
+                      </h4>
+                      <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                        {nuance.tag}
                       </span>
-                    ))}
-                    {item.phrasalVerbs.length > 2 && (
-                      <span className="text-[10px] text-slate-500 px-1 py-0.5">
-                        +{item.phrasalVerbs.length - 2} 더보기
-                      </span>
-                    )}
-                  </div>
-                )}
+                    </div>
 
-                {/* Dictionary Quick-Link Buttons (Card Grid) */}
-                <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-800/60 mt-1">
-                  <span className="text-[10px] text-slate-500 font-bold w-full uppercase tracking-wider mb-0.5">📖 더 많은 예문 보기</span>
-                  {getDictionaryLinks(item.word).map((dict) => (
-                    <a
-                      key={dict.shortName}
-                      href={dict.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border transition-colors ${dict.color}`}
-                      title={`${dict.name}에서 '${item.word}' 예문 더보기`}
-                    >
-                      <span>{dict.flag}</span>
-                      <span>{dict.shortName}</span>
-                      <ExternalLink className="w-2.5 h-2.5 opacity-70" />
-                    </a>
-                  ))}
-                </div>
+                    <p className="text-xs text-slate-300 font-medium bg-slate-950/70 p-3 rounded-xl border border-slate-800 leading-relaxed">
+                      {nuance.summary}
+                    </p>
+
+                    <div className="space-y-2 pt-2">
+                      {nuance.details.map((detail, dIdx) => (
+                        <div key={dIdx} className="bg-slate-900/90 rounded-xl p-3 border border-slate-800/80 text-xs space-y-1.5">
+                          <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                            📌 {detail.aspect}
+                          </span>
+                          <div className="grid grid-cols-1 gap-1 text-slate-200">
+                            <p className="flex items-center gap-1.5 text-sky-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-sky-400" />
+                              <span>{detail.first}</span>
+                            </p>
+                            {detail.second && (
+                              <p className="flex items-center gap-1.5 text-emerald-300">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                                <span>{detail.second}</span>
+                              </p>
+                            )}
+                            {detail.third && (
+                              <p className="flex items-center gap-1.5 text-purple-300">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+                                <span>{detail.third}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800">
+                      <p className="text-xs font-medium text-amber-300/90 italic">
+                        {nuance.tip}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Empty Search State */}
-      {!showNuancesOnly && filteredPrepositions.length === 0 && (
-        <div className="glass-panel p-12 text-center space-y-4 max-w-md mx-auto">
-          <HelpCircle className="w-12 h-12 text-slate-500 mx-auto" />
-          <h3 className="text-lg font-bold text-white">검색 결과가 없습니다</h3>
-          <p className="text-xs text-slate-400">
-            검색어 "<span className="text-amber-400">{searchTerm}</span>"에 해당하는 전치사를 찾지 못했습니다. 카테고리를 '전체보기'로 변경하거나 다른 검색어를 입력해 보세요.
-          </p>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setSelectedCategory('all');
-            }}
-            className="btn-secondary text-xs"
-          >
-            검색 초기화
-          </button>
-        </div>
-      )}
-
-      {/* DETAIL MODAL FOR CLICKED PREPOSITION */}
-      {selectedPreposition && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-          <div className="glass-panel max-w-2xl w-full p-6 sm:p-8 space-y-6 border-indigo-500/40 relative max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedPreposition(null)}
-              className="absolute top-6 right-6 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-4">
-              <span className="text-4xl p-3 bg-slate-900 rounded-2xl border border-slate-800">
-                {selectedPreposition.visualIcon}
-              </span>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h3 className="text-3xl font-extrabold text-white font-brand">
-                    {selectedPreposition.word}
-                  </h3>
-                  <button
-                    onClick={() => handleSpeak(selectedPreposition.word)}
-                    className="p-2 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/40 transition-all"
-                    title="원어민 발음 듣기"
+          ) : (
+            /* STANDARD PREPOSITION DICTIONARY GRID VIEW */
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 [column-fill:_balance] animate-fade-in">
+              {filteredPrepositions.map((item) => {
+                const isActive = selectedPreposition?.id === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedPreposition(item)}
+                    className={`glass-panel p-6 space-y-4 hover:border-indigo-500/50 transition-all duration-300 group hover:-translate-y-1 cursor-pointer flex flex-col justify-between break-inside-avoid w-full mb-6 ${
+                      isActive 
+                        ? 'border-indigo-500 bg-indigo-950/20 ring-2 ring-indigo-500/30' 
+                        : ''
+                    }`}
                   >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border inline-block mt-1 ${getCategoryBadgeClass(selectedPreposition.category)}`}>
-                  {selectedPreposition.categoryLabel}
+                    <div className="space-y-3">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl p-2 bg-slate-900 rounded-xl border border-slate-800 group-hover:scale-110 transition-transform">
+                            {item.visualIcon}
+                          </span>
+                          <div>
+                            <h3 className="text-xl font-extrabold text-white font-brand group-hover:text-indigo-400 transition-colors flex items-center gap-2">
+                              <span>{item.word}</span>
+                            </h3>
+                            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border inline-block mt-1 ${getCategoryBadgeClass(item.category)}`}>
+                              {item.categoryLabel}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSpeak(item.word);
+                          }}
+                          className="p-2 rounded-lg bg-slate-800/80 text-slate-400 hover:text-sky-300 hover:bg-slate-700 transition-all shrink-0"
+                          title="발음 듣기"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Arrow Meaning Badge */}
+                      <div className="inline-block px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold w-full">
+                        🎯 시각 이미지: {item.arrowMeaning}
+                      </div>
+
+                      {/* Core Concept */}
+                      <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                        {item.coreConcept}
+                      </p>
+                    </div>
+
+                    {/* Example Snippet */}
+                    <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        대표 예시
+                      </span>
+                      {item.examples && item.examples.length > 0 ? (
+                        <div className="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800 text-xs space-y-1">
+                          <p className="font-semibold text-sky-300 flex items-center justify-between">
+                            <span>"{item.examples[0].en}"</span>
+                            <ArrowUpRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 transition-colors" />
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            → {item.examples[0].kr}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400">"{item.example}"</p>
+                      )}
+
+                      {/* Phrasal Verbs Preview */}
+                      {item.phrasalVerbs && item.phrasalVerbs.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {item.phrasalVerbs.slice(0, 2).map((pv, idx) => (
+                            <span key={idx} className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700">
+                              {pv}
+                            </span>
+                          ))}
+                          {item.phrasalVerbs.length > 2 && (
+                            <span className="text-[10px] text-slate-500 px-1 py-0.5">
+                              +{item.phrasalVerbs.length - 2} 더보기
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Dictionary Quick-Link Buttons (Card Grid) */}
+                      <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-800/60 mt-1">
+                        <span className="text-[10px] text-slate-500 font-bold w-full uppercase tracking-wider mb-0.5">📖 더 많은 예문 보기</span>
+                        {getDictionaryLinks(item.word).map((dict) => (
+                          <a
+                            key={dict.shortName}
+                            href={dict.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border transition-colors ${dict.color}`}
+                            title={`${dict.name}에서 '${item.word}' 예문 더보기`}
+                          >
+                            <span>{dict.flag}</span>
+                            <span>{dict.shortName}</span>
+                            <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Sticky Detail Side Panel */}
+        {selectedPreposition && (
+          <div 
+            className="w-full lg:w-[40%] xl:w-[35%] lg:sticky lg:top-40 bg-slate-900 border border-indigo-500/30 rounded-2xl p-5 space-y-4 shadow-2xl max-h-[calc(100vh-190px)] overflow-y-auto scrollbar-thin shrink-0 animate-fade-in"
+            style={{
+              animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}
+          >
+            {/* Header / Close Button */}
+            <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl p-2 bg-slate-950 rounded-2xl border border-slate-800">
+                  {selectedPreposition.visualIcon}
                 </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-extrabold text-white font-brand">
+                      {selectedPreposition.word}
+                    </h3>
+                    <button
+                      onClick={() => handleSpeak(selectedPreposition.word)}
+                      className="p-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/40 transition-all"
+                      title="원어민 발음 듣기"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border inline-block mt-0.5 ${getCategoryBadgeClass(selectedPreposition.category)}`}>
+                    {selectedPreposition.categoryLabel}
+                  </span>
+                </div>
               </div>
+              
+              <button
+                onClick={() => setSelectedPreposition(null)}
+                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-all shrink-0"
+                title="상세보기 닫기"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Arrow English Visual Concept */}
-            <div className="bg-gradient-to-r from-indigo-900/40 to-sky-900/40 p-4 rounded-xl border border-indigo-500/30 space-y-2">
-              <span className="text-xs font-extrabold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-indigo-400" />
+            <div className="bg-gradient-to-r from-indigo-900/40 to-sky-900/40 p-3.5 rounded-xl border border-indigo-500/30 space-y-1.5">
+              <span className="text-[10px] font-extrabold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-indigo-400" />
                 <span>애로우 잉글리시 시각적 핵심 이미지</span>
               </span>
               <p className="text-base font-bold text-white">
@@ -466,16 +468,16 @@ export function PrepositionGuide() {
             </div>
 
             {/* Examples Breakdown */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-extrabold text-slate-200 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-sky-400" />
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-sky-400" />
                 <span>실전 문장과 애로우 순차 해설</span>
               </h4>
 
               <div className="space-y-2">
                 {selectedPreposition.examples ? (
                   selectedPreposition.examples.map((ex, idx) => (
-                    <div key={idx} className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <div key={idx} className="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-bold text-sky-300 font-brand">
                           {ex.en}
@@ -493,7 +495,7 @@ export function PrepositionGuide() {
                     </div>
                   ))
                 ) : (
-                  <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+                  <div className="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
                     <p className="text-sm font-bold text-sky-300 font-brand">
                       {selectedPreposition.example}
                     </p>
@@ -504,16 +506,16 @@ export function PrepositionGuide() {
 
             {/* High Frequency Phrasal Verbs / Idioms */}
             {selectedPreposition.phrasalVerbs && selectedPreposition.phrasalVerbs.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <h4 className="text-sm font-extrabold text-slate-200 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-emerald-400" />
+              <div className="space-y-2 pt-1">
+                <h4 className="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
                   <span>빈출 구동사 및 필수 숙어 팁</span>
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {selectedPreposition.phrasalVerbs.map((pv, pIdx) => (
                     <span
                       key={pIdx}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-200 text-xs font-semibold"
+                      className="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-200 text-xs font-semibold"
                     >
                       🔥 {pv}
                     </span>
@@ -523,9 +525,9 @@ export function PrepositionGuide() {
             )}
 
             {/* Dictionary Deep-Link Section */}
-            <div className="pt-4 border-t border-slate-800 space-y-3">
-              <h4 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-amber-400" />
+            <div className="pt-3 border-t border-slate-800 space-y-2.5">
+              <h4 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                 <span>📖 더 많은 예문 & 발음 — 글로벌 사전 바로가기</span>
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -535,35 +537,35 @@ export function PrepositionGuide() {
                     href={dict.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-bold transition-all ${dict.color}`}
+                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-[11px] font-bold transition-all ${dict.color}`}
                     title={`${dict.name}에서 '${selectedPreposition.word}' 전치사 예문 더보기`}
                   >
-                    <span className="text-xl">{dict.flag}</span>
+                    <span className="text-lg">{dict.flag}</span>
                     <span className="text-center leading-tight">{dict.name}</span>
-                    <span className="flex items-center gap-1 text-[10px] opacity-70">
-                      <ExternalLink className="w-2.5 h-2.5" />
+                    <span className="flex items-center gap-1 text-[9px] opacity-70">
+                      <ExternalLink className="w-2 h-2" />
                       <span>새 탭으로 열기</span>
                     </span>
                   </a>
                 ))}
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[10px] text-slate-500 leading-relaxed">
                 💡 <strong className="text-slate-400">Cambridge</strong>는 영영 + 다양한 구어체 예문, <strong className="text-slate-400">네이버</strong>는 한국어 해석 병기, <strong className="text-slate-400">Merriam-Webster</strong>는 미국 구어 예문, <strong className="text-slate-400">Oxford Learner's</strong>는 수능/공인시험 빈출 예문 중심으로 추천합니다.
               </p>
             </div>
 
-            {/* Bottom Modal Actions */}
-            <div className="flex justify-end">
+            {/* Bottom Panel Actions */}
+            <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedPreposition(null)}
-                className="btn-primary text-xs"
+                className="btn-primary text-xs px-5 py-2.5"
               >
                 확인 및 닫기
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

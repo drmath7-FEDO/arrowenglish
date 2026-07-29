@@ -1,16 +1,24 @@
-# React + Vite
+# 🎯 Arrow English 학습 도우미 (Arrow English AI)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Arrow English 학습 및 복습을 돕는 웹 애플리케이션입니다. 
+한국어식 역순 번역이 아닌 주인공에서 출발해 가까운 대상 순으로 시각화하여 영어식 뇌를 만드는 것을 목표로 합니다.
 
-Currently, two official plugins are available:
+## 🚀 실행 방법
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Windows 환경에서 프로그램을 편리하게 실행할 수 있는 실행 파일(`run.bat`)이 제공됩니다.
+1. `run.bat` 파일을 더블 클릭하여 실행합니다.
+2. 브라우저에서 `http://localhost:5173` (또는 화면에 표시되는 로컬 주소)으로 접속합니다.
 
-## React Compiler
+## ☁️ 데이터 동기화 & 보관 가이드
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+여러 컴퓨터나 외부(노트북)에서 데이터를 이어서 학습하려면 구글 드라이브 동기화 설정을 권장합니다.
+자세한 설정 방법은 아래 가이드를 참고해 주세요:
 
-## Expanding the Oxlint configuration
+* 📖 [구글 드라이브 동기화 상세 가이드 (GOOGLE_DRIVE_GUIDE.md)](./GOOGLE_DRIVE_GUIDE.md)
+* ✉️ [이메일 전송 상세 설정 가이드 (EMAIL_SETTING_GUIDE.md)](./EMAIL_SETTING_GUIDE.md)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## 주요 기능
+1. **화살표 영어식 순차 번역 및 역할 지정** (주인공 ➔ 동작 ➔ 가까운 대상 ➔ 전치사 ➔ 장소 ➔ 시간)
+2. **원어민 추천 표현 및 주요 어휘 뉘앙스 정리**
+3. **PC 폴더 및 구글 드라이브를 활용한 무제한 데이터 저장**
+4. **리듬감 있는 말하기 연습 (TTS 및 음성 배속 조절)**
