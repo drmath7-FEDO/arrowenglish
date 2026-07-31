@@ -6,8 +6,9 @@ import { getEducationalGoogleImageSearchUrl } from '../services/imageSearchServi
 import { getHomonymSuggestions } from '../services/homonymService';
 import { getNativeRecommendations, getVocabNuances } from '../services/recommendationService';
 import { buildUpdatedTranslationResult } from '../services/resultService';
-import { speakEnglishText } from '../services/speechService';
+import { speakEnglishText, stopSpeaking, getTtsSettings } from '../services/speechService';
 import { convertArrowKorean, PRESET_SENTENCES } from '../services/translationService';
+import { TtsSettingsBar } from './TtsSettingsBar';
 
 export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
   const [inputSentence, setInputSentence] = useState(PRESET_SENTENCES[0].arrowKorean);
@@ -15,6 +16,9 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
   const [result, setResult] = useState(PRESET_SENTENCES[0]);
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [speakingText, setSpeakingText] = useState('');
+  const [currentRepIndex, setCurrentRepIndex] = useState(0);
+  const [totalReps, setTotalReps] = useState(1);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSavedInVault, setIsSavedInVault] = useState(false);
   const [vaultToastMsg, setVaultToastMsg] = useState('');
@@ -100,12 +104,44 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
     if (onResultChange) onResultChange(preset);
   };
 
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
   // Text-to-speech audio player
   const handleSpeak = (text) => {
+    if (speaking && speakingText === text) {
+      stopSpeaking();
+      setSpeaking(false);
+      setSpeakingText('');
+      setCurrentRepIndex(0);
+      return;
+    }
+
+    const settings = getTtsSettings();
+    const reps = settings.repetitions || 1;
+    setTotalReps(reps);
+    setSpeakingText(text);
+
     const didSpeak = speakEnglishText(text, {
-      onStart: () => setSpeaking(true),
-      onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false)
+      onStart: () => {
+        setSpeaking(true);
+      },
+      onLoopStart: (currentLoop) => {
+        setCurrentRepIndex(currentLoop);
+      },
+      onEnd: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      },
+      onError: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      }
     });
 
     if (!didSpeak) {
@@ -257,6 +293,8 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
       {/* Translation & Visual Breakdown Result Area */}
       {result && (
         <div className="space-y-8 animate-fade-in">
+          {/* 🔊 원어민 발음 설정 바 */}
+          <TtsSettingsBar className="glass-panel border-indigo-500/20" />
           {/* Rate Limit / Local Fallback Notice Banner */}
           {result.notice && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm font-semibold flex items-center gap-3 animate-pulse">
@@ -298,11 +336,15 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
 
                 <button
                   onClick={() => handleSpeak(result.english)}
-                  className={`btn-secondary text-xs gap-1.5 transition-all ${speaking ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
-                  title="영문 발음 듣기"
+                  className={`btn-secondary text-xs gap-1.5 transition-all ${speaking && speakingText === result.english ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
+                  title={speaking && speakingText === result.english ? '발음 중단하기' : '영문 발음 듣기'}
                 >
-                  <Volume2 className={`w-3.5 h-3.5 ${speaking ? 'animate-bounce text-indigo-400' : 'text-slate-400'}`} />
-                  <span className="font-semibold">{speaking ? '재생 중...' : '원어민 발음 듣기'}</span>
+                  <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === result.english ? 'animate-bounce text-indigo-400' : 'text-slate-400'}`} />
+                  <span className="font-semibold">
+                    {speaking && speakingText === result.english
+                      ? `듣기 중단 (${currentRepIndex}/${totalReps}회)`
+                      : '원어민 발음 듣기'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -500,11 +542,15 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
                         </span>
                         <button
                           onClick={() => handleSpeak(rec.english)}
-                          className="btn-secondary text-xs gap-1.5 opacity-90 group-hover:opacity-100"
-                          title="이 추천 표현 발음 듣기"
+                          className={`btn-secondary text-xs gap-1.5 opacity-90 group-hover:opacity-100 transition-all ${speaking && speakingText === rec.english ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
+                          title={speaking && speakingText === rec.english ? '발음 중단하기' : '이 추천 표현 발음 듣기'}
                         >
-                          <Volume2 className="w-3.5 h-3.5 text-sky-400" />
-                          <span>원어민 발음 듣기</span>
+                          <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === rec.english ? 'animate-bounce text-indigo-400' : 'text-sky-400'}`} />
+                          <span>
+                            {speaking && speakingText === rec.english
+                              ? `듣기 중단 (${currentRepIndex}/${totalReps}회)`
+                              : '원어민 발음 듣기'}
+                          </span>
                         </button>
                       </div>
 
@@ -754,19 +800,33 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
                         'bg-purple-500/10 text-purple-300 border-purple-500/30'
                       ];
                       return (
-                        <div key={rIdx} className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 hover:border-sky-500/40 transition-colors">
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded border inline-block ${badgeColors[rIdx % 3]}`}>
-                            {rec.label}
-                          </span>
-                          <p className="text-sm sm:text-base font-extrabold text-white font-brand select-all pt-0.5">"{rec.english}"</p>
-                          <p className="text-xs text-slate-300 font-medium">({rec.korean})</p>
-                          {rec.keyChange && (
-                            <div className="pt-1">
-                              <span className="text-[11px] font-semibold text-amber-300/90 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 inline-block">
-                                {rec.keyChange}
-                              </span>
-                            </div>
-                          )}
+                        <div key={rIdx} className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 hover:border-sky-500/40 transition-colors flex items-center justify-between gap-4">
+                          <div className="space-y-1.5 flex-1">
+                            <span className={`text-xs font-bold px-2.5 py-0.5 rounded border inline-block ${badgeColors[rIdx % 3]}`}>
+                              {rec.label}
+                            </span>
+                            <p className="text-sm sm:text-base font-extrabold text-white font-brand select-all pt-0.5">"{rec.english}"</p>
+                            <p className="text-xs text-slate-300 font-medium">({rec.korean})</p>
+                            {rec.keyChange && (
+                              <div className="pt-1">
+                                <span className="text-[11px] font-semibold text-amber-300/90 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 inline-block">
+                                  {rec.keyChange}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleSpeak(rec.english)}
+                            className={`btn-secondary text-xs gap-1.5 shrink-0 transition-all ${speaking && speakingText === rec.english ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
+                            title="이 추천 표현 발음 듣기"
+                          >
+                            <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === rec.english ? 'animate-bounce text-indigo-400' : 'text-sky-400'}`} />
+                            <span>
+                              {speaking && speakingText === rec.english
+                                ? `중단 (${currentRepIndex}/${totalReps})`
+                                : '듣기'}
+                            </span>
+                          </button>
                         </div>
                       );
                     })}

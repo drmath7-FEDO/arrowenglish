@@ -1,5 +1,7 @@
 // src/components/PrepositionGuide.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { speakEnglishText, stopSpeaking, getTtsSettings } from '../services/speechService';
+import { TtsSettingsBar } from './TtsSettingsBar';
 import { PREPOSITION_CATEGORIES, PREPOSITION_LIST, PREPOSITION_NUANCES } from '../services/prepositionData';
 import { 
   Compass, 
@@ -54,6 +56,10 @@ export function PrepositionGuide() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPreposition, setSelectedPreposition] = useState(null);
   const [showNuancesOnly, setShowNuancesOnly] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [speakingText, setSpeakingText] = useState('');
+  const [currentRepIndex, setCurrentRepIndex] = useState(0);
+  const [totalReps, setTotalReps] = useState(1);
 
   // Filter logic
   const filteredPrepositions = PREPOSITION_LIST.filter(item => {
@@ -87,13 +93,49 @@ export function PrepositionGuide() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
   const handleSpeak = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
+    if (!text) return;
+
+    if (speaking && speakingText === text) {
+      stopSpeaking();
+      setSpeaking(false);
+      setSpeakingText('');
+      setCurrentRepIndex(0);
+      return;
+    }
+
+    const settings = getTtsSettings();
+    const reps = settings.repetitions || 1;
+    setTotalReps(reps);
+    setSpeakingText(text);
+
+    const didSpeak = speakEnglishText(text, {
+      onStart: () => {
+        setSpeaking(true);
+      },
+      onLoopStart: (currentLoop) => {
+        setCurrentRepIndex(currentLoop);
+      },
+      onEnd: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      },
+      onError: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      }
+    });
+
+    if (!didSpeak) {
+      alert('이 브라우저는 음성 합성을 지원하지 않습니다.');
     }
   };
 
@@ -138,6 +180,9 @@ export function PrepositionGuide() {
           )}
         </div>
       </section>
+
+      {/* 🔊 원어민 발음 설정 바 */}
+      <TtsSettingsBar className="glass-panel border-indigo-500/20" />
 
       {/* Category Tabs & Nuance Toggle */}
       <div className="space-y-4">
@@ -432,10 +477,10 @@ export function PrepositionGuide() {
                     </h3>
                     <button
                       onClick={() => handleSpeak(selectedPreposition.word)}
-                      className="p-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/40 transition-all"
-                      title="원어민 발음 듣기"
+                      className={`p-1.5 rounded-lg transition-all ${speaking && speakingText === selectedPreposition.word ? 'bg-indigo-600/40 text-indigo-300' : 'bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/40'}`}
+                      title={speaking && speakingText === selectedPreposition.word ? '발음 중단하기' : '원어민 발음 듣기'}
                     >
-                      <Volume2 className="w-3.5 h-3.5" />
+                      <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === selectedPreposition.word ? 'animate-bounce' : ''}`} />
                     </button>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border inline-block mt-0.5 ${getCategoryBadgeClass(selectedPreposition.category)}`}>
@@ -484,9 +529,10 @@ export function PrepositionGuide() {
                         </p>
                         <button
                           onClick={() => handleSpeak(ex.en)}
-                          className="text-slate-400 hover:text-sky-300 p-1"
+                          className={`p-1 transition-all ${speaking && speakingText === ex.en ? 'text-indigo-400 bg-indigo-600/20 rounded-md' : 'text-slate-400 hover:text-sky-300'}`}
+                          title={speaking && speakingText === ex.en ? `중단 (${currentRepIndex}/${totalReps})` : '발음 듣기'}
                         >
-                          <Volume2 className="w-3.5 h-3.5" />
+                          <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === ex.en ? 'animate-bounce' : ''}`} />
                         </button>
                       </div>
                       <p className="text-xs text-amber-300 font-medium leading-relaxed">

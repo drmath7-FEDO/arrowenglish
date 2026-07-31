@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getVaultItems, removeFromVault, getMasteredCount, loadVaultSnapshot, subscribeToVaultChanges } from '../services/vaultService';
 import { exportToPDF } from '../services/exportService';
 import { getNativeRecommendations } from '../services/recommendationService';
-import { speakEnglishText } from '../services/speechService';
+import { speakEnglishText, stopSpeaking, getTtsSettings } from '../services/speechService';
+import { TtsSettingsBar } from './TtsSettingsBar';
 import {
   Bookmark,
   CheckCircle2,
@@ -29,6 +30,10 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyn
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'today', 'ai'
   const [toastMessage, setToastMessage] = useState('');
   const [storagePath, setStoragePath] = useState('');
+  const [speaking, setSpeaking] = useState(false);
+  const [speakingText, setSpeakingText] = useState('');
+  const [currentRepIndex, setCurrentRepIndex] = useState(0);
+  const [totalReps, setTotalReps] = useState(1);
 
   // Load items & stats
   useEffect(() => {
@@ -53,10 +58,51 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyn
     setTimeout(() => setToastMessage(''), 3500);
   };
 
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
+
   // Text-to-Speech (Audio)
   const handleSpeak = (text) => {
     if (!text) return;
-    speakEnglishText(text);
+
+    if (speaking && speakingText === text) {
+      stopSpeaking();
+      setSpeaking(false);
+      setSpeakingText('');
+      setCurrentRepIndex(0);
+      return;
+    }
+
+    const settings = getTtsSettings();
+    const reps = settings.repetitions || 1;
+    setTotalReps(reps);
+    setSpeakingText(text);
+
+    const didSpeak = speakEnglishText(text, {
+      onStart: () => {
+        setSpeaking(true);
+      },
+      onLoopStart: (currentLoop) => {
+        setCurrentRepIndex(currentLoop);
+      },
+      onEnd: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      },
+      onError: () => {
+        setSpeaking(false);
+        setSpeakingText('');
+        setCurrentRepIndex(0);
+      }
+    });
+
+    if (!didSpeak) {
+      alert('이 브라우저는 음성 합성을 지원하지 않습니다.');
+    }
   };
 
   // Mark as Mastered & Remove
@@ -257,6 +303,9 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyn
         </div>
       </section>
 
+      {/* 🔊 원어민 발음 설정 바 */}
+      <TtsSettingsBar className="glass-panel border-indigo-500/20" />
+
       {/* Main Saved Cards List */}
       {filteredItems.length === 0 ? (
         <div className="glass-panel p-12 text-center space-y-5 border-slate-800 bg-slate-900/50">
@@ -334,11 +383,15 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyn
                     {/* Audio TTS Button */}
                     <button
                       onClick={() => handleSpeak(item.english)}
-                      className="btn-secondary text-xs gap-1.5"
-                      title="원어민 발음 들려주기"
+                      className={`btn-secondary text-xs gap-1.5 transition-all ${speaking && speakingText === item.english ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
+                      title={speaking && speakingText === item.english ? '발음 중단하기' : '원어민 발음 들려주기'}
                     >
-                      <Volume2 className="w-3.5 h-3.5 text-sky-400" />
-                      <span>발음 듣기</span>
+                      <Volume2 className={`w-3.5 h-3.5 ${speaking && speakingText === item.english ? 'animate-bounce text-indigo-400' : 'text-sky-400'}`} />
+                      <span>
+                        {speaking && speakingText === item.english
+                          ? `중단 (${currentRepIndex}/${totalReps}회)`
+                          : '발음 듣기'}
+                      </span>
                     </button>
 
                     {/* Export PDF Button */}
@@ -445,12 +498,24 @@ export function StudyVault({ onNavigateToTranslator, onOpenEmailModal, onOpenSyn
                         return (
                           <div
                             key={rIdx}
-                            className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 text-xs flex flex-col justify-between"
+                            className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 text-xs flex flex-col justify-between hover:border-sky-500/40 transition-colors"
                           >
                             <div className="space-y-1">
-                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded border inline-block ${badgeColors[rIdx % 3]}`}>
-                                {rec.label}
-                              </span>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-[11px] font-bold px-2 py-0.5 rounded border inline-block ${badgeColors[rIdx % 3]}`}>
+                                  {rec.label}
+                                </span>
+                                <button
+                                  onClick={() => handleSpeak(rec.english)}
+                                  className={`btn-secondary text-[10px] px-2 py-0.5 gap-1 transition-all ${speaking && speakingText === rec.english ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500' : ''}`}
+                                  title="발음 듣기"
+                                >
+                                  <Volume2 className={`w-3 h-3 ${speaking && speakingText === rec.english ? 'animate-bounce text-indigo-400' : 'text-sky-400'}`} />
+                                  <span>
+                                    {speaking && speakingText === rec.english ? `${currentRepIndex}/${totalReps}` : '듣기'}
+                                  </span>
+                                </button>
+                              </div>
                               <p className="font-extrabold text-white font-brand pt-1 text-sm select-all">
                                 "{rec.english}"
                               </p>
