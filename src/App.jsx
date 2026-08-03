@@ -4,6 +4,7 @@ import { ArrowTranslator } from './components/ArrowTranslator';
 import { ArrowPractice } from './components/ArrowPractice';
 import { PrepositionGuide } from './components/PrepositionGuide';
 import { StudyVault } from './components/StudyVault';
+import { DocumentReader } from './components/DocumentReader';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GuideModal } from './components/GuideModal';
 import { EmailModal } from './components/EmailModal';
@@ -69,6 +70,9 @@ export default function App() {
       <main className="container mx-auto">
         {activeTab === 'translator' && (
           <ArrowTranslator apiKey={apiKey} onResultChange={setCurrentResult} onOpenSettings={() => setIsSettingsOpen(true)} />
+        )}
+        {activeTab === 'document' && (
+          <DocumentReader apiKey={apiKey} onOpenSettings={() => setIsSettingsOpen(true)} />
         )}
         {activeTab === 'practice' && <ArrowPractice />}
         {activeTab === 'dictionary' && <PrepositionGuide />}

@@ -10,10 +10,10 @@ import { speakEnglishText, stopSpeaking, getTtsSettings } from '../services/spee
 import { convertArrowKorean, PRESET_SENTENCES } from '../services/translationService';
 import { TtsSettingsBar } from './TtsSettingsBar';
 
-export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
-  const [inputSentence, setInputSentence] = useState(PRESET_SENTENCES[0].arrowKorean);
-  const [selectedPresetId, setSelectedPresetId] = useState(PRESET_SENTENCES[0].id);
-  const [result, setResult] = useState(PRESET_SENTENCES[0]);
+export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings, initialInput = '', hidePresets = false, hideHeader = false }) {
+  const [inputSentence, setInputSentence] = useState(initialInput || PRESET_SENTENCES[0].arrowKorean);
+  const [selectedPresetId, setSelectedPresetId] = useState(initialInput ? null : PRESET_SENTENCES[0].id);
+  const [result, setResult] = useState(initialInput ? null : PRESET_SENTENCES[0]);
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [speakingText, setSpeakingText] = useState('');
@@ -105,6 +105,14 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
   };
 
   useEffect(() => {
+    if (initialInput) {
+      setInputSentence(initialInput);
+      setSelectedPresetId(null);
+      handleConvert(initialInput);
+    }
+  }, [initialInput]);
+
+  useEffect(() => {
     return () => {
       stopSpeaking();
     };
@@ -152,7 +160,8 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8 animate-fade-in">
       {/* Hero Header Banner */}
-      <section className="glass-panel p-8 text-center relative overflow-hidden">
+      {!hideHeader && (
+        <section className="glass-panel p-8 text-center relative overflow-hidden">
         <div className="absolute -right-12 -top-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -187,11 +196,13 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
             <span className="px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40">6. 시간</span>
           </div>
         </div>
-      </section>
+        </section>
+      )}
 
       {/* Preset Sentence Pills */}
-      <section className="glass-panel p-6 space-y-4">
-        <div className="flex items-center justify-between">
+      {!hidePresets && (
+        <section className="glass-panel p-6 space-y-4">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
             <Layers className="w-4 h-4 text-sky-400" />
             <span>연습 예문 9가지 (1-클릭 테스트)</span>
@@ -212,6 +223,7 @@ export function ArrowTranslator({ apiKey, onResultChange, onOpenSettings }) {
           ))}
         </div>
       </section>
+      )}
 
       {/* Input Box & Converter Action */}
       <section className="glass-panel p-6 space-y-4">

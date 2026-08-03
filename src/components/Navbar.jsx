@@ -65,6 +65,18 @@ export function Navbar({ activeTab, setActiveTab, onOpenSettings, onOpenGuide, t
         </button>
 
         <button
+          onClick={() => setActiveTab('document')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'document'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-sky-400" />
+          <span>📖 독해 모드</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('practice')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
             activeTab === 'practice'
